@@ -1,1 +1,64 @@
-spring.application.name=streamly
+spring:
+  datasource:
+    # localhost 뒤의 v_stream_db는 실제 MySQL에 생성하신 DB 이름이어야 합니다.
+    url: jdbc:mysql://localhost:3306/streamly_db?createDatabaseIfNotExist=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+    username: ${MYSQL_USERNAME}
+    password: ${MYSQL_PASSWORD} # 실제 MySQL 비밀번호로 수정
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: profile, email
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/kakao"
+            scope: profile_nickname, account_email
+            client-name: Kakao
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+  data:
+    redis:
+      host: ${REDIS_HOST:172.31.51.148}
+      port: ${REDIS_PORT:6379}
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 5GB      # 최대 파일 크기
+      max-request-size: 5GB   # 최대 요청 크기
+      file-size-threshold: 2MB # 메모리에 저장할 크기
+
+jwt:
+  secret: ${JWT_SECRET}  # 환경변수 필수 - 기본값 제거로 보안 강화
+  access-token-expiration: 1800000          # 30분 (30 * 60 * 1000) - 보안 강화
+  refresh-token-expiration: 604800000      # 7일 (7 * 24 * 60 * 60 * 1000)
+
+# 쿠키 보안 설정
+cookie:
+  secure: ${COOKIE_SECURE:false}  # 운영 환경에서는 true로 설정
+
+# 프론트엔드 URL
+frontend:
+  url: ${FRONTEND_URL:http://localhost:3000}
+
+# 파일 업로드 설정
+file:
+  upload-dir: ${FILE_UPLOAD_DIR:./uploads}
