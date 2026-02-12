@@ -62,8 +62,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/login/**", "/oauth2/**").permitAll() // 인증 없이 접근 가능
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/api/v1/test/**").permitAll() // 테스트 API (개발용)
                         .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login").permitAll() // 회원가입, 로그인
                         .requestMatchers("/api/v1/auth/refresh").permitAll() // 토큰 갱신은 인증 없이 가능
+                        .requestMatchers("/thumbnails/**", "/uploads/**").permitAll() // 정적 파일 (썸네일, 업로드)
                         .requestMatchers("/api/v1/users/me").authenticated() // 사용자 정보 조회는 인증 필요
                         .requestMatchers("/api/v1/videos/upload").hasAnyRole("UPLOADER", "ADMIN") // 업로드 권한 체크
                         .requestMatchers("/api/v1/videos").permitAll() // 영상 목록 조회는 인증 없이 가능

@@ -39,6 +39,16 @@ public class FileStorageUtil {
      * @return 저장된 파일 경로
      */
     public String storeFile(MultipartFile file) {
+        return storeFile(file, null);
+    }
+
+    /**
+     * 파일 저장 (서브디렉토리 지원)
+     * @param file 업로드된 파일
+     * @param subDirectory 서브디렉토리 (예: "thumbnails")
+     * @return 저장된 파일 경로
+     */
+    public String storeFile(MultipartFile file, String subDirectory) {
         // 원본 파일명
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null || originalFilename.isEmpty()) {
@@ -50,8 +60,15 @@ public class FileStorageUtil {
         String storedFilename = UUID.randomUUID().toString() + extension;
 
         try {
+            // 서브디렉토리 처리
+            Path targetDirectory = this.uploadLocation;
+            if (subDirectory != null && !subDirectory.isEmpty()) {
+                targetDirectory = this.uploadLocation.resolve(subDirectory);
+                Files.createDirectories(targetDirectory);
+            }
+
             // 파일 저장
-            Path targetLocation = this.uploadLocation.resolve(storedFilename);
+            Path targetLocation = targetDirectory.resolve(storedFilename);
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
             
             log.info("파일 저장 완료: {} -> {}", originalFilename, storedFilename);

@@ -45,6 +45,20 @@ spring:
       max-file-size: 5GB      # 최대 파일 크기
       max-request-size: 5GB   # 최대 요청 크기
       file-size-threshold: 2MB # 메모리에 저장할 크기
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:admin}
+    password: ${RABBITMQ_PASSWORD:admin123}
+    listener:
+      simple:
+        concurrency: 3
+        max-concurrency: 10
+        retry:
+          enabled: true
+          initial-interval: 3000
+          max-attempts: 3
+          multiplier: 2
 
 jwt:
   secret: ${JWT_SECRET}  # 환경변수 필수 - 기본값 제거로 보안 강화
@@ -59,6 +73,27 @@ cookie:
 frontend:
   url: ${FRONTEND_URL:http://localhost:3000}
 
-# 파일 업로드 설정
-file:
-  upload-dir: ${FILE_UPLOAD_DIR:./uploads}
+# 영상 업로드 설정
+video:
+  upload:
+    directory: ${VIDEO_UPLOAD_DIR:uploads}
+  encoded:
+    directory: ${VIDEO_ENCODED_DIR:encoded}
+
+# FFmpeg 설정
+ffmpeg:
+  path: ${FFMPEG_PATH:ffmpeg}
+  
+# FFprobe 설정
+ffprobe:
+  path: ${FFPROBE_PATH:ffprobe}
+
+# AWS S3 설정
+aws:
+  access-key: ${AWS_ACCESS_KEY_ID}
+  secret-key: ${AWS_SECRET_ACCESS_KEY}
+  region: ${AWS_REGION:ap-northeast-2}
+  s3:
+    bucket-name: ${AWS_S3_BUCKET_NAME}
+  cloudfront:
+    domain: ${AWS_CLOUDFRONT_DOMAIN:}

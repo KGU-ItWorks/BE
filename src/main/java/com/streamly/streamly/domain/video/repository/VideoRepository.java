@@ -48,6 +48,23 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
     // 특정 상태의 영상 개수
     long countByStatus(VideoStatus status);
 
+    // 승인 상태별 영상 개수
+    long countByApprovalStatus(ApprovalStatus approvalStatus);
+
     // 업로더별 영상 개수
     long countByUploaderId(Long uploaderId);
+
+    // 상태별 영상 조회 (관리자용)
+    Page<Video> findByStatus(VideoStatus status, Pageable pageable);
+
+    // 상태와 승인 상태 모두로 필터링 (관리자용)
+    Page<Video> findByStatusAndApprovalStatus(VideoStatus status, ApprovalStatus approvalStatus, Pageable pageable);
+
+    // 전체 조회수 합계
+    @Query("SELECT SUM(v.viewCount) FROM Video v")
+    Long sumViewCount();
+
+    // 전체 저장 용량 합계
+    @Query("SELECT SUM(v.originalFileSize) FROM Video v")
+    Long sumOriginalFileSize();
 }

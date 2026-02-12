@@ -61,7 +61,9 @@ public class VideoController {
             @Parameter(description = "연령 등급 (예: 12+, 15+, 19+)")
             @RequestParam(value = "ageRating", required = false) String ageRating,
             @Parameter(description = "영상 파일", required = true)
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            @Parameter(description = "썸네일 이미지 파일 (선택)")
+            @RequestParam(value = "thumbnailFile", required = false) MultipartFile thumbnailFile) {
 
         String email = authentication.getName();
 
@@ -72,7 +74,7 @@ public class VideoController {
                 .ageRating(ageRating)
                 .build();
 
-        VideoResponse response = videoService.uploadVideo(email, request, file);
+        VideoResponse response = videoService.uploadVideo(email, request, file, thumbnailFile);
 
         log.info("영상 업로드 요청 - User: {}, Title: {}, Size: {} bytes", 
                 email, title, file.getSize());
@@ -198,6 +200,37 @@ public class VideoController {
         Page<VideoResponse> videos = videoService.getRecentVideos(pageable);
 
         return ResponseEntity.ok(videos);
+    }
+
+    @Operation(
+        summary = "영상 인코딩 상태 조회",
+        description = "영상의 인코딩 진행 상태를 조회합니다. 인코딩 진행률과 메타데이터를 확인할 수 있습니다."
+    )
+    @GetMapping("/{videoId}/status")
+    public ResponseEntity<VideoResponse> getVideoStatus(
+            @Parameter(description = "영상 ID", required = true)
+            @PathVariable Long videoId) {
+        
+        VideoResponse video = videoService.getVideoById(videoId);
+        return ResponseEntity.ok(video);
+    }
+
+    @Operation(
+        summary = "영상 정보 수정",
+        description = "영상의 제목, 설명, 카테고리 등 메타정보를 수정합니다. 업로더 본인 또는 관리자만 수정 가능합니다."
+    )
+    @PreAuthorize("hasAnyRole('UPLOADER', 'ADMIN')")
+    @PutMapping("/{videoId}")
+    public ResponseEntity<VideoResponse> updateVideo(
+            @Parameter(hidden = true) Authentication authentication,
+            @Parameter(description = "영상 ID", required = true)
+            @PathVariable Long videoId,
+            @Valid @RequestBody com.streamly.streamly.domain.video.dto.VideoUpdateRequest request) {
+        
+        String email = authentication.getName();
+        VideoResponse response = videoService.updateVideo(email, videoId, request);
+
+        return ResponseEntity.ok(response);
     }
 
     @Operation(
