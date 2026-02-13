@@ -371,23 +371,18 @@ public class VideoService {
      * S3 파일 삭제
      */
     private void deleteS3Files(Video video) {
-        // S3Service를 주입받아야 하므로, 일단 로그만 남기고
-        // AdminVideoService에서 처리하도록 변경하거나
-        // S3Service를 VideoService에 주입
-
-        // S3에 업로드된 파일이 있는 경우
-        if (video.getS3Key() != null || video.getCloudfrontUrl() != null) {
-            try {
+        try {
+            // S3에 업로드된 파일이 있는 경우
+            if (video.getS3Key() != null || video.getCloudfrontUrl() != null) {
                 // videos/{videoId}/ prefix로 모든 파일 삭제
                 String s3Prefix = "videos/" + video.getId() + "/";
-
-                // TODO: S3Service 주입 필요
-                // s3Service.deleteDirectory(s3Prefix);
-
-                log.info("S3 파일 삭제 필요: {}", s3Prefix);
-            } catch (Exception e) {
-                log.warn("S3 파일 삭제 실패 (계속 진행): {}", e.getMessage());
+                
+                s3Service.deleteDirectory(s3Prefix);
+                
+                log.info("S3 파일 삭제 완료: {}", s3Prefix);
             }
+        } catch (Exception e) {
+            log.warn("S3 파일 삭제 실패 (계속 진행): {}", e.getMessage());
         }
     }
 

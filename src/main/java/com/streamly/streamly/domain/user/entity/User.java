@@ -29,14 +29,18 @@ public class User extends BaseEntity { // BaseEntity는 생성/수정일 자동 
     private String provider; // "google", "kakao" 등
     private String providerId; // 소셜 서비스의 고유 ID
 
+    @Column(nullable = false)
+    private boolean active = true; // 계정 활성화 상태
+
     @Builder
     public User(String email, String password, String nickname, Role role, String provider, String providerId) {
         this.email = email;
         this.password = password;
         this.nickname = nickname;
-        this.role = role;
+        this.role = role != null ? role : Role.ROLE_USER;
         this.provider = provider;
         this.providerId = providerId;
+        this.active = true;
     }
 
     // 소셜 정보를 업데이트하기 위한 메서드
@@ -44,4 +48,15 @@ public class User extends BaseEntity { // BaseEntity는 생성/수정일 자동 
         this.nickname = nickname;
         return this;
     }
+
+    // 권한 변경
+    public void changeRole(Role newRole) {
+        this.role = newRole;
+    }
+
+    // 활성화 상태 변경
+    public void changeActiveStatus(boolean active) {
+        this.active = active;
+    }
 }
+

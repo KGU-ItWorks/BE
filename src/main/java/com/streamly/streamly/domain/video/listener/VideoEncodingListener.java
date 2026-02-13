@@ -87,14 +87,14 @@ public class VideoEncodingListener {
             video.updateStatus(VideoStatus.COMPLETED);
             video.updateEncodingProgress(100);
 
-            // 6. 개발/테스트 환경: 자동으로 승인 (프로덕션에서는 제거)
-            video.approve();
+            // 6. 승인 상태는 PENDING으로 유지 (관리자가 승인해야 함)
+            // video.approve(); // 자동 승인 제거
 
             videoRepository.save(video);
-            log.info("Video encoding and S3 upload completed successfully for ID: {} (Auto-approved)", video.getId());
+            log.info("Video encoding and S3 upload completed successfully for ID: {} (Waiting for admin approval)", video.getId());
 
-            // 6. 로컬 파일 정리 (옵션)
-            // deleteLocalFiles(message.getOriginalFilePath(), message.getOutputDirectory());
+            // 7. 로컬 파일 정리 (S3 업로드 완료 후)
+            deleteLocalFiles(message.getOriginalFilePath(), message.getOutputDirectory());
 
         } catch (Exception e) {
             log.error("Video encoding failed for ID: {}", message.getVideoId(), e);
