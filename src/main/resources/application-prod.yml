@@ -2,8 +2,6 @@
 # 프로덕션 환경 설정
 
 spring:
-  # [수정] 'profiles:' 속성을 삭제했습니다. 프로파일 전용 파일에서는 파일명(prod)으로 결정되므로 명시하지 않아도 됩니다.
-
   # Database
   datasource:
     url: jdbc:postgresql://${DB_HOST:postgres-service}:${DB_PORT:5432}/${DB_NAME:streamly}
@@ -43,6 +41,14 @@ spring:
           enabled: true
           max-attempts: 3
 
+  # Redis
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      timeout: 3000ms
+
   # File Upload
   servlet:
     multipart:
@@ -72,7 +78,9 @@ management:
       base-path: /actuator
   endpoint:
     health:
-      show-details: when-authorized
+      show-details: always
+  server:
+    port: 8080
 
 # JWT
 jwt:
