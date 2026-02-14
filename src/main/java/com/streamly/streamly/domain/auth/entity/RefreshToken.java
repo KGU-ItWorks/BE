@@ -1,6 +1,5 @@
 package com.streamly.streamly.domain.auth.entity;
 
-
 import lombok.Getter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;
