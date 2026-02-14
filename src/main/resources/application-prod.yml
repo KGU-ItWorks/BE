@@ -2,8 +2,8 @@
 # 프로덕션 환경 설정
 
 spring:
-  profiles:
-  
+  # [수정] 'profiles:' 속성을 삭제했습니다. 프로파일 전용 파일에서는 파일명(prod)으로 결정되므로 명시하지 않아도 됩니다.
+
   # Database
   datasource:
     url: jdbc:postgresql://${DB_HOST:postgres-service}:${DB_PORT:5432}/${DB_NAME:streamly}
@@ -16,7 +16,7 @@ spring:
       connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000
-  
+
   # JPA
   jpa:
     hibernate:
@@ -28,7 +28,7 @@ spring:
         show_sql: false
         use_sql_comments: false
     show-sql: false
-  
+
   # RabbitMQ
   rabbitmq:
     host: ${RABBITMQ_HOST:rabbitmq-service}
@@ -42,7 +42,7 @@ spring:
         retry:
           enabled: true
           max-attempts: 3
-  
+
   # File Upload
   servlet:
     multipart:
