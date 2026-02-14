@@ -41,11 +41,18 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+        
+        // 프로덕션 도메인 및 로컬 개발 환경 허용
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+            "https://streamlyai.store",           // ⚠️ 실제 도메인으로 변경
+            "https://www.streamlyai.store",       // ⚠️ 실제 도메인으로 변경
+            "http://localhost:3000"             // 로컬 개발용
+        ));
+        
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PATCH", "DELETE", "PUT", "OPTIONS"));
         configuration.setAllowCredentials(true);
         configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setExposedHeaders(Arrays.asList("Set-Cookie"));
+        configuration.setExposedHeaders(Arrays.asList("Set-Cookie", "Authorization", "Content-Type"));
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -56,6 +63,11 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                // HTTPS 강제 (프로덕션 환경에서 X-Forwarded-Proto 헤더 확인)
+                .requiresChannel(channel -> channel
+                    .requestMatchers(r -> r.getHeader("X-Forwarded-Proto") != null)
+                    .requiresSecure()
+                )
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // CORS 설정 적용
                 .csrf(csrf -> csrf.disable()) // API 서버이므로 CSRF 비활성화
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // 세션 미사용
@@ -66,6 +78,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login").permitAll() // 회원가입, 로그인
                         .requestMatchers("/api/v1/auth/refresh").permitAll() // 토큰 갱신은 인증 없이 가능
                         .requestMatchers("/thumbnails/**", "/uploads/**").permitAll() // 정적 파일 (썸네일, 업로드)
+                        .requestMatchers("/actuator/health").permitAll() // Health check
                         .requestMatchers("/api/v1/users/me").authenticated() // 사용자 정보 조회는 인증 필요
                         .requestMatchers("/api/v1/videos/upload").hasAnyRole("UPLOADER", "ADMIN") // 업로드 권한 체크
                         .requestMatchers("/api/v1/videos").permitAll() // 영상 목록 조회는 인증 없이 가능
