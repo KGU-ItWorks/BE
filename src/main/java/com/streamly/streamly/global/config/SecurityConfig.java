@@ -41,14 +41,13 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
-        // 프로덕션 도메인 및 로컬 개발 환경 허용
+
         configuration.setAllowedOriginPatterns(Arrays.asList(
-            "https://streamlyai.store",           // ⚠️ 실제 도메인으로 변경
-            "https://www.streamlyai.store",       // ⚠️ 실제 도메인으로 변경
-            "http://localhost:3000"             // 로컬 개발용
+                "https://streamlyai.store",
+                "https://www.streamlyai.store",
+                "http://localhost:3000"
         ));
-        
+
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PATCH", "DELETE", "PUT", "OPTIONS"));
         configuration.setAllowCredentials(true);
         configuration.setAllowedHeaders(Arrays.asList("*"));
@@ -63,28 +62,28 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // HTTPS 강제 (프로덕션 환경에서 X-Forwarded-Proto 헤더 확인)
                 .requiresChannel(channel -> channel
-                    .requestMatchers(r -> r.getHeader("X-Forwarded-Proto") != null)
-                    .requiresSecure()
+                        .requestMatchers(r -> r.getHeader("X-Forwarded-Proto") != null)
+                        .requiresSecure()
                 )
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // CORS 설정 적용
-                .csrf(csrf -> csrf.disable()) // API 서버이므로 CSRF 비활성화
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // 세션 미사용
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/login/**", "/oauth2/**").permitAll() // 인증 없이 접근 가능
+                        // [수정] Nginx 접두사(/api)를 포함한 OAuth2 관련 경로 모두 허용
+                        .requestMatchers("/", "/login/**", "/oauth2/**", "/api/login/**", "/api/oauth2/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/api/v1/test/**").permitAll() // 테스트 API (개발용)
-                        .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login").permitAll() // 회원가입, 로그인
-                        .requestMatchers("/api/v1/auth/refresh").permitAll() // 토큰 갱신은 인증 없이 가능
-                        .requestMatchers("/thumbnails/**", "/uploads/**").permitAll() // 정적 파일 (썸네일, 업로드)
-                        .requestMatchers("/actuator/**").permitAll() // Actuator 전체 허용
-                        .requestMatchers("/api/v1/users/me").authenticated() // 사용자 정보 조회는 인증 필요
-                        .requestMatchers("/api/v1/videos/upload").hasAnyRole("UPLOADER", "ADMIN") // 업로드 권한 체크
-                        .requestMatchers("/api/v1/videos").permitAll() // 영상 목록 조회는 인증 없이 가능
-                        .requestMatchers("/api/v1/videos/**").permitAll() // 영상 상세 조회도 인증 없이 가능
+                        .requestMatchers("/api/v1/test/**").permitAll()
+                        .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login").permitAll()
+                        .requestMatchers("/api/v1/auth/refresh").permitAll()
+                        .requestMatchers("/thumbnails/**", "/uploads/**").permitAll()
+                        // [수정] Actuator 경로도 접두사 포함 허용
+                        .requestMatchers("/actuator/**", "/api/actuator/**").permitAll()
+                        .requestMatchers("/api/v1/users/me").authenticated()
+                        .requestMatchers("/api/v1/videos/upload").hasAnyRole("UPLOADER", "ADMIN")
+                        .requestMatchers("/api/v1/videos").permitAll()
+                        .requestMatchers("/api/v1/videos/**").permitAll()
                         .anyRequest().authenticated()
-
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
@@ -98,7 +97,6 @@ public class SecurityConfig {
                         })
                 );
 
-        // 필터 체인 순서: Rate Limit -> CSRF -> JWT -> UsernamePassword
         http.addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(csrfHeaderFilter, UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
