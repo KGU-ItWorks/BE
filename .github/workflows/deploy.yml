@@ -60,7 +60,7 @@ jobs:
         username: ubuntu
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          cd ~/streamly-deploy
+          cd ~/INFRA
           
           # ECR 로그인
           aws ecr get-login-password --region ap-northeast-2 | \
