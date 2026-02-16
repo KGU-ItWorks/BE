@@ -8,6 +8,7 @@ import com.streamly.streamly.domain.video.entity.Video;
 import com.streamly.streamly.domain.video.entity.VideoStatus;
 import com.streamly.streamly.domain.video.repository.VideoRepository;
 import com.streamly.streamly.global.config.RabbitMQConfig;
+import com.streamly.streamly.global.service.S3Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,6 +32,7 @@ public class VideoUploadService {
 
     private final VideoRepository videoRepository;
     private final RabbitTemplate rabbitTemplate;
+    private final S3Service s3Service;
 
     @Value("${video.upload.directory:uploads}")
     private String uploadDirectory;
@@ -70,11 +73,11 @@ public class VideoUploadService {
         
         log.info("Video file saved: {}", videoFilePath);
 
-        // 3. 썸네일 파일 저장 (있는 경우)
+        // 3. 썸네일 파일을 S3에 업로드 (있는 경우)
         String thumbnailUrl = null;
         if (thumbnailFile != null && !thumbnailFile.isEmpty()) {
-            thumbnailUrl = saveThumbnail(thumbnailFile);
-            log.info("Thumbnail saved: {}", thumbnailUrl);
+            thumbnailUrl = uploadThumbnailToS3(thumbnailFile);
+            log.info("Thumbnail uploaded to S3: {}", thumbnailUrl);
         }
 
         // 4. Video 엔티티 생성 및 저장
@@ -115,6 +118,7 @@ public class VideoUploadService {
                 .videoId(video.getId())
                 .title(video.getTitle())
                 .status(video.getStatus())
+                .thumbnailUrl(thumbnailUrl)
                 .message("영상이 업로드되었습니다. 인코딩이 진행됩니다.")
                 .build();
     }
@@ -156,22 +160,36 @@ public class VideoUploadService {
     }
 
     /**
-     * 썸네일 파일 저장
+     * 썸네일을 S3에 업로드
      */
-    private String saveThumbnail(MultipartFile thumbnailFile) throws IOException {
+    private String uploadThumbnailToS3(MultipartFile thumbnailFile) throws IOException {
+        // 1. 임시 파일로 저장
         String originalFileName = thumbnailFile.getOriginalFilename();
         String uniqueFileName = UUID.randomUUID().toString() + getFileExtension(originalFileName);
         
-        Path thumbnailPath = Paths.get(uploadDirectory, "thumbnails");
-        if (!Files.exists(thumbnailPath)) {
-            Files.createDirectories(thumbnailPath);
+        Path tempDir = Paths.get(System.getProperty("java.io.tmpdir"));
+        Path tempFile = tempDir.resolve(uniqueFileName);
+        Files.copy(thumbnailFile.getInputStream(), tempFile, StandardCopyOption.REPLACE_EXISTING);
+        
+        try {
+            // 2. S3 키 생성 (thumbnails/uuid.jpg)
+            String s3Key = "thumbnails/" + uniqueFileName;
+            
+            // 3. S3에 업로드
+            String thumbnailUrl = s3Service.uploadFile(tempFile.toFile(), s3Key);
+            
+            log.info("Thumbnail uploaded to S3: {} -> {}", uniqueFileName, thumbnailUrl);
+            
+            return thumbnailUrl;
+            
+        } finally {
+            // 4. 임시 파일 삭제
+            try {
+                Files.deleteIfExists(tempFile);
+            } catch (IOException e) {
+                log.warn("Failed to delete temp thumbnail file: {}", tempFile, e);
+            }
         }
-        
-        Path filePath = thumbnailPath.resolve(uniqueFileName);
-        Files.copy(thumbnailFile.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-        
-        // 상대 경로 또는 URL 반환 (추후 S3 URL로 변경될 수 있음)
-        return "/thumbnails/" + uniqueFileName;
     }
 
     /**

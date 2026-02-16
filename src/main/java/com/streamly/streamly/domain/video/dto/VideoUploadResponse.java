@@ -15,5 +15,6 @@ public class VideoUploadResponse {
     private Long videoId;
     private String title;
     private VideoStatus status;
+    private String thumbnailUrl;
     private String message;
 }
