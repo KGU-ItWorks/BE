@@ -112,6 +112,11 @@ jwt:
   secret: ${JWT_SECRET}
   expiration: 86400000  # 24시간
 
+# Admin Init (초기 관리자 생성용)
+admin:
+  init:
+    secret: ${ADMIN_INIT_SECRET:PLEASE_CHANGE_THIS}
+
 # AWS
 aws:
   access-key: ${AWS_ACCESS_KEY}
