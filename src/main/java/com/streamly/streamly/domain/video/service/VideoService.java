@@ -143,22 +143,51 @@ public class VideoService {
     }
 
     /**
-     * 썸네일 파일 저장
+     * 썸네일 파일 저장 (S3에 업로드)
      */
     private String saveThumbnail(MultipartFile thumbnailFile) {
         try {
-            String savedPath = fileStorageUtil.storeFile(thumbnailFile, "thumbnails");
-            
-            // 절대 경로에서 파일명만 추출
-            // 예: C:/BE/uploads/thumbnails/uuid.jpg -> uuid.jpg
-            String filename = Paths.get(savedPath).getFileName().toString();
-            
-            // 상대 URL 경로 반환
-            return "/thumbnails/" + filename;
+            // 1. 임시 파일로 저장
+            String originalFileName = thumbnailFile.getOriginalFilename();
+            String uniqueFileName = java.util.UUID.randomUUID().toString() + getFileExtension(originalFileName);
+
+            java.nio.file.Path tempDir = Paths.get(System.getProperty("java.io.tmpdir"));
+            java.nio.file.Path tempFile = tempDir.resolve(uniqueFileName);
+            java.nio.file.Files.copy(thumbnailFile.getInputStream(), tempFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+            try {
+                // 2. S3 키 생성 (thumbnails/uuid.jpg)
+                String s3Key = "thumbnails/" + uniqueFileName;
+
+                // 3. S3에 업로드
+                String thumbnailUrl = s3Service.uploadFile(tempFile.toFile(), s3Key);
+
+                log.info("Thumbnail uploaded to S3: {} -> {}", uniqueFileName, thumbnailUrl);
+
+                return thumbnailUrl;
+
+            } finally {
+                // 4. 임시 파일 삭제
+                try {
+                    java.nio.file.Files.deleteIfExists(tempFile);
+                } catch (Exception e) {
+                    log.warn("Failed to delete temp thumbnail file: {}", tempFile, e);
+                }
+            }
         } catch (Exception e) {
             log.error("썸네일 저장 실패", e);
             throw new IllegalArgumentException("썸네일 저장에 실패했습니다.");
         }
+    }
+
+    /**
+     * 파일 확장자 추출
+     */
+    private String getFileExtension(String filename) {
+        if (filename == null || !filename.contains(".")) {
+            return "";
+        }
+        return filename.substring(filename.lastIndexOf("."));
     }
 
     /**
@@ -347,23 +376,40 @@ public class VideoService {
     }
 
     /**
-     * 로컬 썸네일 삭제
+     * 썸네일 삭제 (S3)
      */
     private void deleteLocalThumbnail(Video video) {
         try {
-            if (video.getThumbnailUrl() != null && video.getThumbnailUrl().startsWith("/thumbnails/")) {
-                // /thumbnails/filename.jpg -> uploads/thumbnails/filename.jpg
-                String thumbnailFileName = video.getThumbnailUrl().substring("/thumbnails/".length());
-                String thumbnailPath = "uploads/thumbnails/" + thumbnailFileName;
+            if (video.getThumbnailUrl() != null) {
+                // S3 URL인 경우 S3에서 삭제
+                if (video.getThumbnailUrl().contains("s3.") || video.getThumbnailUrl().contains("cloudfront.net")) {
+                    // URL에서 S3 키 추출
+                    // 예: https://bucket.s3.region.amazonaws.com/thumbnails/uuid.jpg -> thumbnails/uuid.jpg
+                    // 예: https://cloudfront.net/thumbnails/uuid.jpg -> thumbnails/uuid.jpg
+                    String s3Key;
+                    if (video.getThumbnailUrl().contains("/thumbnails/")) {
+                        s3Key = "thumbnails/" + video.getThumbnailUrl().substring(video.getThumbnailUrl().lastIndexOf("/thumbnails/") + "/thumbnails/".length());
+                    } else {
+                        return; // S3 키를 추출할 수 없으면 스킵
+                    }
 
-                java.nio.file.Path path = java.nio.file.Paths.get(thumbnailPath);
-                if (java.nio.file.Files.exists(path)) {
-                    java.nio.file.Files.delete(path);
-                    log.info("로컬 썸네일 삭제 완료: {}", thumbnailPath);
+                    s3Service.deleteFile(s3Key);
+                    log.info("S3 썸네일 삭제 완료: {}", s3Key);
+                }
+                // 로컬 파일인 경우 (하위 호환성)
+                else if (video.getThumbnailUrl().startsWith("/thumbnails/")) {
+                    String thumbnailFileName = video.getThumbnailUrl().substring("/thumbnails/".length());
+                    String thumbnailPath = "uploads/thumbnails/" + thumbnailFileName;
+
+                    java.nio.file.Path path = java.nio.file.Paths.get(thumbnailPath);
+                    if (java.nio.file.Files.exists(path)) {
+                        java.nio.file.Files.delete(path);
+                        log.info("로컬 썸네일 삭제 완료: {}", thumbnailPath);
+                    }
                 }
             }
         } catch (Exception e) {
-            log.warn("로컬 썸네일 삭제 실패 (계속 진행): {}", e.getMessage());
+            log.warn("썸네일 삭제 실패 (계속 진행): {}", e.getMessage());
         }
     }
 
