@@ -1,0 +1,149 @@
+# application-prod.yml
+# 프로덕션 환경 설정
+
+spring:
+  # Database
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:postgres-service}:${DB_PORT:5432}/${DB_NAME:streamly}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # JPA
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        show_sql: false
+        use_sql_comments: false
+    show-sql: false
+  
+  # OAuth2
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: profile, email
+            redirect-uri: "https://streamlyai.store/login/oauth2/code/google"
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            redirect-uri: "https://streamlyai.store/login/oauth2/code/kakao"
+            scope: profile_nickname, account_email
+            client-name: Kakao
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
+  # RabbitMQ
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq-service}
+    port: 5672
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    listener:
+      simple:
+        acknowledge-mode: auto
+        prefetch: 1
+        retry:
+          enabled: true
+          max-attempts: 3
+
+  # Redis
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      timeout: 3000ms
+
+  # File Upload
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 5000MB
+      max-request-size: 5000MB
+
+# Server
+server:
+  port: 8080
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,application/javascript,application/json
+  forward-headers-strategy: framework
+  tomcat:
+    max-connections: 10000
+    threads:
+      max: 200
+      min-spare: 10
+
+# Management (Actuator)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+  server:
+    port: 8080
+
+# JWT
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 86400000  # 24시간
+
+# Admin Init (초기 관리자 생성용)
+admin:
+  init:
+    secret: ${ADMIN_INIT_SECRET:PLEASE_CHANGE_THIS}
+
+# AWS
+aws:
+  access-key: ${AWS_ACCESS_KEY}
+  secret-key: ${AWS_SECRET_KEY}
+  region: ap-northeast-2
+  s3:
+    bucket: ${AWS_S3_BUCKET}
+  cloudfront:
+    domain: ${AWS_CLOUDFRONT_DOMAIN}
+
+# Video Processing
+video:
+  upload:
+    directory: /app/uploads
+  encoded:
+    directory: /app/encoded
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.streamly.streamly: INFO
+    org.springframework.web: INFO
+    org.hibernate: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+  file:
+    name: /app/logs/streamly.log
+    max-size: 10MB
+    max-history: 30

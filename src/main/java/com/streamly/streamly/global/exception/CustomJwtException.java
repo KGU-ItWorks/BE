@@ -1,0 +1,7 @@
+package com.streamly.streamly.global.exception;
+
+public class CustomJwtException extends RuntimeException {
+    public CustomJwtException(String message) {
+        super(message);
+    }
+}
