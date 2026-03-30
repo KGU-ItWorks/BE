@@ -80,6 +80,7 @@ public class SecurityConfig {
                         // [수정] Actuator 경로도 접두사 포함 허용
                         .requestMatchers("/actuator/**", "/api/actuator/**").permitAll()
                         .requestMatchers("/api/v1/users/me").authenticated()
+                        .requestMatchers("/api/v1/interactions/**").authenticated()
                         .requestMatchers("/api/v1/videos/upload").hasAnyRole("UPLOADER", "ADMIN")
                         .requestMatchers("/api/v1/videos").permitAll()
                         .requestMatchers("/api/v1/videos/**").permitAll()
