@@ -9,13 +9,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
-import java.util.Optional;
 
 public interface VideoRepository extends JpaRepository<Video, Long> {
 
     // 공개된 영상만 조회 (완료 + 승인)
-//    @Query("SELECT v FROM Video v WHERE v.status = 'COMPLETED' AND v.approvalStatus = 'APPROVED' ")
+    //@Query("SELECT v FROM Video v WHERE v.status = 'COMPLETED' AND v.approvalStatus = 'APPROVED' ")
     @Query("""
         SELECT v
         FROM Video v
@@ -48,6 +46,12 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
     Page<Video> findByUploaderId(@Param("uploaderId") Long uploaderId, Pageable pageable);
 
     // 승인 대기 중인 영상 (관리자용)
+    @Query("""
+        SELECT v
+        FROM Video v
+        JOIN FETCH v.uploader
+        WHERE v.approvalStatus = :approvalStatus
+    """)
     Page<Video> findByApprovalStatus(ApprovalStatus approvalStatus, Pageable pageable);
 
     // 검색 (제목 + 설명)
@@ -95,10 +99,26 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
     long countByUploaderId(Long uploaderId);
 
     // 상태별 영상 조회 (관리자용)
+    @Query("""
+        SELECT v
+        FROM Video v
+        JOIN FETCH v.uploader
+        WHERE v.status = :status
+    """)
     Page<Video> findByStatus(VideoStatus status, Pageable pageable);
 
     // 상태와 승인 상태 모두로 필터링 (관리자용)
+    @Query("""
+        SELECT v
+        FROM Video v
+        JOIN FETCH v.uploader
+        WHERE v.status = :status
+            AND v.approvalStatus = :approvalStatus
+    """)
     Page<Video> findByStatusAndApprovalStatus(VideoStatus status, ApprovalStatus approvalStatus, Pageable pageable);
+
+    @Query("SELECT v FROM Video v JOIN FETCH v.uploader")
+    Page<Video> findAllWithUploader(Pageable pageable);
 
     // 전체 조회수 합계
     @Query("SELECT SUM(v.viewCount) FROM Video v")
