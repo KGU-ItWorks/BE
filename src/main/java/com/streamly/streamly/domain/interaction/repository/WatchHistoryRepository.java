@@ -28,6 +28,7 @@ public interface WatchHistoryRepository extends JpaRepository<WatchHistory, Long
     @Modifying
     void deleteByUser(User user);
 
-    @Query("SELECT wh FROM WatchHistory wh JOIN FETCH wh.video v JOIN FETCH v.uploader WHERE wh.user = :user")
+    @Query(value = "SELECT wh FROM WatchHistory wh JOIN FETCH wh.video v JOIN FETCH v.uploader WHERE wh.user = :user",
+           countQuery = "SELECT COUNT(wh) FROM WatchHistory wh WHERE wh.user = :user")
     Page<WatchHistory> findByUserWithVideoAndUploader(User user, Pageable pageable);
 }
