@@ -194,10 +194,10 @@ class AuthServiceTest {
         given(tokenProvider.createAccessToken(anyString(), anyString())).willReturn(newAccessToken);
 
         // when
-        String result = authService.refreshAccessToken(refreshToken);
+        String[] result = authService.refreshAccessToken(refreshToken);
 
         // then
-        assertThat(result).isEqualTo(newAccessToken);
+        assertThat(result).isEqualTo(new String[]{newAccessToken,refreshToken});
         then(tokenProvider).should(times(1)).validateToken(refreshToken);
         then(refreshTokenRepository).should(times(1)).findByRefreshToken(refreshToken);
         then(userRepository).should(times(1)).findByEmail(testUser.getEmail());
