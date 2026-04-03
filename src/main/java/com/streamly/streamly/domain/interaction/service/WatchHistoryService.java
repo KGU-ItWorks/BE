@@ -30,7 +30,7 @@ public class WatchHistoryService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
 
-        return watchHistoryRepository.findByUser(user, pageable)
+        return watchHistoryRepository.findByUserWithVideoAndUploader(user, pageable)
                 .map(WatchHistoryResponse::from);
     }
 

@@ -54,7 +54,7 @@ public class FavoritesController {
         boolean isInFavor = favoritesService.toggleFavorite(email, videoId);
         return ResponseEntity.ok(Map.of(
                 "favorited", isInFavor,
-                "message", isInFavor ? "찜 목록에 추가 되었습니다." : "찜 목록에서 제거 되었습니다"
+                "message", isInFavor ? "찜 목록에 추가 되었습니다." : "찜 목록에서 제거 되었습니다."
         ));
     }
 }
