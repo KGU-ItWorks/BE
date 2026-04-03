@@ -166,7 +166,7 @@ class AuthControllerTest {
     void refreshToken_Success() throws Exception {
         // given
         String newAccessToken = "new.access.token";
-        given(authService.refreshAccessToken(anyString())).willReturn(newAccessToken);
+        given(authService.refreshAccessToken(anyString())).willReturn(new String[]{newAccessToken});
 
         // when & then
         mockMvc.perform(post("/api/v1/auth/refresh")
