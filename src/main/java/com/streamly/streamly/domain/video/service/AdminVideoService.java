@@ -45,7 +45,7 @@ public class AdminVideoService {
             ApprovalStatus approval = ApprovalStatus.valueOf(approvalStatus);
             videos = videoRepository.findByApprovalStatus(approval, pageable);
         } else {
-            videos = videoRepository.findAll(pageable);
+            videos = videoRepository.findAllWithUploader(pageable);
         }
 
         return videos.map(VideoResponse::from);

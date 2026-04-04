@@ -9,40 +9,116 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
-import java.util.Optional;
 
 public interface VideoRepository extends JpaRepository<Video, Long> {
 
     // 공개된 영상만 조회 (완료 + 승인)
-    @Query("SELECT v FROM Video v WHERE v.status = 'COMPLETED' AND v.approvalStatus = 'APPROVED'")
+    //@Query("SELECT v FROM Video v WHERE v.status = 'COMPLETED' AND v.approvalStatus = 'APPROVED' ")
+    @Query(value = """
+        SELECT v
+        FROM Video v
+        JOIN FETCH v.uploader
+        WHERE v.status = 'COMPLETED'
+            AND v.approvalStatus = 'APPROVED'
+    """, countQuery = """
+        SELECT COUNT(v)
+        FROM Video v
+        WHERE v.status = 'COMPLETED'
+            AND v.approvalStatus = 'APPROVED'
+    """)
     Page<Video> findPublishedVideos(Pageable pageable);
 
     // 카테고리별 공개 영상
-    @Query("SELECT v FROM Video v WHERE v.status = 'COMPLETED' AND v.approvalStatus = 'APPROVED' AND v.category = :category")
+//    @Query("SELECT v FROM Video v WHERE v.status = 'COMPLETED' AND v.approvalStatus = 'APPROVED' AND v.category = :category")
+    @Query(value = """
+        SELECT v
+        FROM Video v
+        JOIN FETCH v.uploader
+        WHERE v.status = 'COMPLETED'
+            AND v.approvalStatus = 'APPROVED'
+            AND v.category = :category
+    """, countQuery = """
+        SELECT COUNT(v)
+        FROM Video v
+        WHERE v.status = 'COMPLETED'
+            AND v.approvalStatus = 'APPROVED'
+            AND v.category = :category
+    """)
     Page<Video> findPublishedVideosByCategory(@Param("category") String category, Pageable pageable);
 
     // 특정 사용자의 업로드 영상
-    @Query("SELECT v FROM Video v WHERE v.uploader.id = :uploaderId")
+//    @Query("SELECT v FROM Video v WHERE v.uploader.id = :uploaderId")
+    @Query(value = """
+        SELECT v
+        FROM Video v
+        JOIN FETCH v.uploader
+        WHERE v.uploader.id = :uploaderId
+    """, countQuery = """
+        SELECT COUNT(v)
+        FROM Video v
+        WHERE v.uploader.id = :uploaderId
+    """)
     Page<Video> findByUploaderId(@Param("uploaderId") Long uploaderId, Pageable pageable);
 
     // 승인 대기 중인 영상 (관리자용)
+    @Query(value = """
+        SELECT v
+        FROM Video v
+        JOIN FETCH v.uploader
+        WHERE v.approvalStatus = :approvalStatus
+    """, countQuery = """
+        SELECT COUNT(v)
+        FROM Video v
+        WHERE v.approvalStatus = :approvalStatus
+    """)
     Page<Video> findByApprovalStatus(ApprovalStatus approvalStatus, Pageable pageable);
 
     // 검색 (제목 + 설명)
-    @Query("SELECT v FROM Video v WHERE v.status = 'COMPLETED' AND v.approvalStatus = 'APPROVED' " +
-           "AND (LOWER(v.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-           "OR LOWER(v.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+//    @Query("SELECT v FROM Video v WHERE v.status = 'COMPLETED' AND v.approvalStatus = 'APPROVED' " +
+//           "AND (LOWER(v.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+//           "OR LOWER(v.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    @Query(value = "SELECT v FROM Video v JOIN FETCH v.uploader WHERE v.status = 'COMPLETED' AND v.approvalStatus = 'APPROVED' " +
+            "AND (LOWER(v.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(v.description) LIKE LOWER(CONCAT('%', :keyword, '%')))",
+           countQuery = "SELECT COUNT(v) FROM Video v WHERE v.status = 'COMPLETED' AND v.approvalStatus = 'APPROVED' " +
+            "AND (LOWER(v.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(v.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     Page<Video> searchPublishedVideos(@Param("keyword") String keyword, Pageable pageable);
 
     // 조회수 상위 영상
-    @Query("SELECT v FROM Video v WHERE v.status = 'COMPLETED' AND v.approvalStatus = 'APPROVED' " +
-           "ORDER BY v.viewCount DESC")
+//    @Query("SELECT v FROM Video v WHERE v.status = 'COMPLETED' AND v.approvalStatus = 'APPROVED' " +
+//           "ORDER BY v.viewCount DESC")
+    @Query(value = """
+        SELECT v
+        FROM Video v
+        JOIN FETCH v.uploader
+        WHERE v.status = 'COMPLETED'
+            AND v.approvalStatus = 'APPROVED'
+        ORDER BY v.viewCount DESC
+    """, countQuery = """
+        SELECT COUNT(v)
+        FROM Video v
+        WHERE v.status = 'COMPLETED'
+            AND v.approvalStatus = 'APPROVED'
+    """)
     Page<Video> findTopViewedVideos(Pageable pageable);
 
     // 최근 업로드 영상
-    @Query("SELECT v FROM Video v WHERE v.status = 'COMPLETED' AND v.approvalStatus = 'APPROVED' " +
-           "ORDER BY v.publishedAt DESC")
+//    @Query("SELECT v FROM Video v WHERE v.status = 'COMPLETED' AND v.approvalStatus = 'APPROVED' " +
+//           "ORDER BY v.publishedAt DESC")
+    @Query(value = """
+        SELECT v
+        FROM Video v
+        JOIN FETCH v.uploader
+        WHERE v.status = 'COMPLETED'
+            AND v.approvalStatus = 'APPROVED'
+        ORDER BY v.publishedAt DESC
+    """, countQuery = """
+        SELECT COUNT(v)
+        FROM Video v
+        WHERE v.status = 'COMPLETED'
+            AND v.approvalStatus = 'APPROVED'
+    """)
     Page<Video> findRecentVideos(Pageable pageable);
 
     // 특정 상태의 영상 개수
@@ -55,10 +131,36 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
     long countByUploaderId(Long uploaderId);
 
     // 상태별 영상 조회 (관리자용)
+    @Query(value = """
+        SELECT v
+        FROM Video v
+        JOIN FETCH v.uploader
+        WHERE v.status = :status
+    """, countQuery = """
+        SELECT COUNT(v)
+        FROM Video v
+        WHERE v.status = :status
+    """)
     Page<Video> findByStatus(VideoStatus status, Pageable pageable);
 
     // 상태와 승인 상태 모두로 필터링 (관리자용)
+    @Query(value = """
+        SELECT v
+        FROM Video v
+        JOIN FETCH v.uploader
+        WHERE v.status = :status
+            AND v.approvalStatus = :approvalStatus
+    """, countQuery = """
+        SELECT COUNT(v)
+        FROM Video v
+        WHERE v.status = :status
+            AND v.approvalStatus = :approvalStatus
+    """)
     Page<Video> findByStatusAndApprovalStatus(VideoStatus status, ApprovalStatus approvalStatus, Pageable pageable);
+
+    @Query(value = "SELECT v FROM Video v JOIN FETCH v.uploader",
+           countQuery = "SELECT COUNT(v) FROM Video v")
+    Page<Video> findAllWithUploader(Pageable pageable);
 
     // 전체 조회수 합계
     @Query("SELECT SUM(v.viewCount) FROM Video v")

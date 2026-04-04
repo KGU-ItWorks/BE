@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
@@ -26,4 +27,8 @@ public interface WatchHistoryRepository extends JpaRepository<WatchHistory, Long
     // 시청 기록 전체 삭제
     @Modifying
     void deleteByUser(User user);
+
+    @Query(value = "SELECT wh FROM WatchHistory wh JOIN FETCH wh.video v JOIN FETCH v.uploader WHERE wh.user = :user",
+           countQuery = "SELECT COUNT(wh) FROM WatchHistory wh WHERE wh.user = :user")
+    Page<WatchHistory> findByUserWithVideoAndUploader(User user, Pageable pageable);
 }

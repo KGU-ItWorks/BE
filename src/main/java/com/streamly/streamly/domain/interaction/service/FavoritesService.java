@@ -8,6 +8,7 @@ import com.streamly.streamly.domain.user.repository.UserRepository;
 import com.streamly.streamly.domain.video.entity.Video;
 import com.streamly.streamly.domain.video.repository.VideoRepository;
 import com.streamly.streamly.global.exception.user.UserNotFoundException;
+import com.streamly.streamly.global.exception.video.VideoNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,7 +28,7 @@ public class FavoritesService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
 
-        return favoritesRepository.findByUser(user, pageable)
+        return favoritesRepository.findByUserWithVideoAndUploader(user, pageable)
                 .map(FavoritesResponse::from);
     }
 
@@ -36,7 +37,7 @@ public class FavoritesService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
         Video video = videoRepository.findById(videoId)
-                .orElseThrow(() -> new IllegalArgumentException("영상을 찾을 수 없습니다."));
+                .orElseThrow(() -> new VideoNotFoundException("영상을 찾을 수 없습니다."));
 
         int deleted = favoritesRepository.deleteByUserIdAndVideoId(user.getId(), videoId);
         if (deleted == 0) {
