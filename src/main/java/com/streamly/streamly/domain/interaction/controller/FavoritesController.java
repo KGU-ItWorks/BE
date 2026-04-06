@@ -41,7 +41,21 @@ public class FavoritesController {
     }
 
     @Operation(
-            summary = "토글 방식으로 찜하기",
+            summary = "찜 여부 확인",
+            description = "특정 영상의 찜 여부를 반환합니다."
+    )
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/favorites/{videoId}/status")
+    public ResponseEntity<Map<String, Object>> checkFavorite(
+            @Parameter(hidden = true) Authentication authentication,
+            @Parameter(description = "영상 Id") @PathVariable Long videoId
+    ) {
+        String email = authentication.getName();
+        boolean isFavorited = favoritesService.checkFavorite(email, videoId);
+        return ResponseEntity.ok(Map.of("favorited", isFavorited));
+    }
+
+    @Operation(
             description = "토글 여부를 받아와 이미 찜 상태이면 삭제, 아니면 찜 목록에 추가합니다."
     )
     @PreAuthorize("isAuthenticated()")

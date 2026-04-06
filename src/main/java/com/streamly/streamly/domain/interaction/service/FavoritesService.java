@@ -32,6 +32,12 @@ public class FavoritesService {
                 .map(FavoritesResponse::from);
     }
 
+    public boolean checkFavorite(String email, Long videoId) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
+        return favoritesRepository.existsByUserIdAndVideoId(user.getId(), videoId);
+    }
+
     @Transactional
     public boolean toggleFavorite(String email, Long videoId) {
         User user = userRepository.findByEmail(email)
