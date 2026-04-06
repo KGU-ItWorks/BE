@@ -56,6 +56,7 @@ public class FavoritesController {
     }
 
     @Operation(
+            summary = "토글 방식으로 찜하기",
             description = "토글 여부를 받아와 이미 찜 상태이면 삭제, 아니면 찜 목록에 추가합니다."
     )
     @PreAuthorize("isAuthenticated()")

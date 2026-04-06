@@ -35,6 +35,9 @@ public class FavoritesService {
     public boolean checkFavorite(String email, Long videoId) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
+        if (videoRepository.existsById(videoId)) {
+            throw new VideoNotFoundException("영상을 찾을 수 없습니다.");
+        }
         return favoritesRepository.existsByUserIdAndVideoId(user.getId(), videoId);
     }
 
