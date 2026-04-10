@@ -20,6 +20,9 @@ public interface FavoritesRepository extends JpaRepository<Favorites,Long> {
     @Modifying
     int deleteByUserIdAndVideoId(Long userId, Long videoId);
 
+    // 찜 여부 확인
+    boolean existsByUserIdAndVideoId(Long userId, Long videoId);
+
 
     //몇명이 영상을 찜했는지 카운팅
     long countByVideo(Video video);
