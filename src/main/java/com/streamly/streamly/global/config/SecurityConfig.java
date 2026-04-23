@@ -63,7 +63,10 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .requiresChannel(channel -> channel
-                        .requestMatchers(r -> r.getHeader("X-Forwarded-Proto") != null)
+                        .requestMatchers(r -> {
+                            String proto = r.getHeader("X-Forwarded-Proto");
+                            return proto != null && proto.equals("http");
+                        })
                         .requiresSecure()
                 )
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))

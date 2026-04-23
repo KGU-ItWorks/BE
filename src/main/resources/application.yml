@@ -1,18 +1,18 @@
 spring:
+  # --- DB (공통: PostgreSQL) ---
   datasource:
-    # localhost 뒤의 v_stream_db는 실제 MySQL에 생성하신 DB 이름이어야 합니다.
-    url: jdbc:mysql://localhost:3306/streamly_db?createDatabaseIfNotExist=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
-    username: ${MYSQL_USERNAME}
-    password: ${MYSQL_PASSWORD} # 실제 MySQL 비밀번호로 수정
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:streamly}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
     properties:
       hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.MySQLDialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # --- OAuth2 ---
   security:
     oauth2:
       client:
@@ -36,16 +36,22 @@ spring:
             token-uri: https://kauth.kakao.com/oauth/token
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
+
+  # --- Redis ---
   data:
     redis:
-      host: ${REDIS_HOST:172.31.51.148}
+      host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+
+  # --- Multipart ---
   servlet:
     multipart:
       enabled: true
-      max-file-size: 5GB      # 최대 파일 크기
-      max-request-size: 5GB   # 최대 요청 크기
-      file-size-threshold: 2MB # 메모리에 저장할 크기
+      max-file-size: 5GB
+      max-request-size: 5GB
+      file-size-threshold: 2MB
+
+  # --- RabbitMQ ---
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
@@ -61,38 +67,37 @@ spring:
           max-attempts: 3
           multiplier: 2
 
+# --- JWT ---
 jwt:
-  secret: ${JWT_SECRET}  # 환경변수 필수 - 기본값 제거로 보안 강화
-  access-token-expiration: 1800000          # 30분 (30 * 60 * 1000) - 보안 강화
-  refresh-token-expiration: 604800000      # 7일 (7 * 24 * 60 * 60 * 1000)
+  secret: ${JWT_SECRET}
+  access-token-expiration: 1800000     # 30분
+  refresh-token-expiration: 604800000  # 7일
 
-# 쿠키 보안 설정
+# --- Cookie ---
 cookie:
-  secure: ${COOKIE_SECURE:false}  # 운영 환경에서는 true로 설정
+  secure: ${COOKIE_SECURE:false}
 
-# 프론트엔드 URL
+# --- Frontend URL ---
 frontend:
   url: ${FRONTEND_URL:http://localhost:3000}
 
-# 영상 업로드 설정
+# --- 영상 처리 경로 ---
 video:
   upload:
     directory: ${VIDEO_UPLOAD_DIR:uploads}
   encoded:
     directory: ${VIDEO_ENCODED_DIR:encoded}
 
-# FFmpeg 설정
+# --- FFmpeg ---
 ffmpeg:
   path: ${FFMPEG_PATH:ffmpeg}
-  
-# FFprobe 설정
 ffprobe:
   path: ${FFPROBE_PATH:ffprobe}
 
-# AWS S3 설정
+# --- AWS S3 ---
 aws:
-  access-key: ${AWS_ACCESS_KEY_ID}
-  secret-key: ${AWS_SECRET_ACCESS_KEY}
+  access-key: ${AWS_ACCESS_KEY}
+  secret-key: ${AWS_SECRET_KEY}
   region: ${AWS_REGION:ap-northeast-2}
   s3:
     bucket-name: ${AWS_S3_BUCKET_NAME}
