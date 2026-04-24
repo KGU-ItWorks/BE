@@ -65,7 +65,10 @@ public class SecurityConfig {
                 .requiresChannel(channel -> channel
                         .requestMatchers(r -> {
                             String proto = r.getHeader("X-Forwarded-Proto");
-                            return proto != null && proto.equals("http");
+                            // 로컬 환경(localhost)에서는 HTTPS 강제 리다이렉트 비활성화
+                            String host = r.getHeader("Host");
+                            boolean isLocal = host != null && (host.startsWith("localhost") || host.startsWith("127.0.0.1"));
+                            return !isLocal && proto != null && proto.equals("http");
                         })
                         .requiresSecure()
                 )
@@ -79,7 +82,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/test/**").permitAll()
                         .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login").permitAll()
                         .requestMatchers("/api/v1/auth/refresh").permitAll()
-                        .requestMatchers("/thumbnails/**", "/uploads/**").permitAll()
+                        .requestMatchers("/thumbnails/**", "/uploads/**", "/encoded/**").permitAll()
                         // [수정] Actuator 경로도 접두사 포함 허용
                         .requestMatchers("/actuator/**", "/api/actuator/**").permitAll()
                         .requestMatchers("/api/v1/users/me").authenticated()

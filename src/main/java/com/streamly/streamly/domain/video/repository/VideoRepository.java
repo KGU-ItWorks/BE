@@ -13,7 +13,6 @@ import org.springframework.data.repository.query.Param;
 public interface VideoRepository extends JpaRepository<Video, Long> {
 
     // 공개된 영상만 조회 (완료 + 승인)
-    //@Query("SELECT v FROM Video v WHERE v.status = 'COMPLETED' AND v.approvalStatus = 'APPROVED' ")
     @Query(value = """
         SELECT v
         FROM Video v
@@ -29,7 +28,6 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
     Page<Video> findPublishedVideos(Pageable pageable);
 
     // 카테고리별 공개 영상
-//    @Query("SELECT v FROM Video v WHERE v.status = 'COMPLETED' AND v.approvalStatus = 'APPROVED' AND v.category = :category")
     @Query(value = """
         SELECT v
         FROM Video v
@@ -74,9 +72,6 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
     Page<Video> findByApprovalStatus(ApprovalStatus approvalStatus, Pageable pageable);
 
     // 검색 (제목 + 설명)
-//    @Query("SELECT v FROM Video v WHERE v.status = 'COMPLETED' AND v.approvalStatus = 'APPROVED' " +
-//           "AND (LOWER(v.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-//           "OR LOWER(v.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     @Query(value = "SELECT v FROM Video v JOIN FETCH v.uploader WHERE v.status = 'COMPLETED' AND v.approvalStatus = 'APPROVED' " +
             "AND (LOWER(v.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "OR LOWER(v.description) LIKE LOWER(CONCAT('%', :keyword, '%')))",
@@ -86,8 +81,6 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
     Page<Video> searchPublishedVideos(@Param("keyword") String keyword, Pageable pageable);
 
     // 조회수 상위 영상
-//    @Query("SELECT v FROM Video v WHERE v.status = 'COMPLETED' AND v.approvalStatus = 'APPROVED' " +
-//           "ORDER BY v.viewCount DESC")
     @Query(value = """
         SELECT v
         FROM Video v
@@ -104,8 +97,6 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
     Page<Video> findTopViewedVideos(Pageable pageable);
 
     // 최근 업로드 영상
-//    @Query("SELECT v FROM Video v WHERE v.status = 'COMPLETED' AND v.approvalStatus = 'APPROVED' " +
-//           "ORDER BY v.publishedAt DESC")
     @Query(value = """
         SELECT v
         FROM Video v

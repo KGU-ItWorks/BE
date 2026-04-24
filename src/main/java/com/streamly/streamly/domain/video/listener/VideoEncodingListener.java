@@ -6,7 +6,6 @@ import com.streamly.streamly.domain.video.entity.VideoStatus;
 import com.streamly.streamly.domain.video.repository.VideoRepository;
 import com.streamly.streamly.global.config.RabbitMQConfig;
 import com.streamly.streamly.global.service.FFmpegService;
-import com.streamly.streamly.global.service.S3Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -15,7 +14,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 
 @Slf4j
@@ -25,7 +23,6 @@ public class VideoEncodingListener {
 
     private final VideoRepository videoRepository;
     private final FFmpegService ffmpegService;
-    private final S3Service s3Service;
 
     @Value("${video.encoded.directory}")
     private String encodedDirectory;
@@ -75,11 +72,11 @@ public class VideoEncodingListener {
             video.updateEncodingProgress(60);
             videoRepository.save(video);
 
-            // 4. S3 업로드
-            log.info("Starting S3 upload for video ID: {}", video.getId());
-            uploadToS3(video, message.getOutputDirectory());
+            // 4. 로컬 경로 정보를 DB에 저장
+            log.info("Saving local encoded path for video ID: {}", video.getId());
+            saveLocalEncodedInfo(video, message.getOutputDirectory());
 
-            // 진행률 업데이트 (S3 업로드 완료 시점)
+            // 진행률 업데이트 (저장 완료 시점)
             video.updateEncodingProgress(90);
             videoRepository.save(video);
 
@@ -88,13 +85,11 @@ public class VideoEncodingListener {
             video.updateEncodingProgress(100);
 
             // 6. 승인 상태는 PENDING으로 유지 (관리자가 승인해야 함)
-            // video.approve(); // 자동 승인 제거
-
             videoRepository.save(video);
-            log.info("Video encoding and S3 upload completed successfully for ID: {} (Waiting for admin approval)", video.getId());
+            log.info("Video encoding completed and saved locally for ID: {} (Waiting for admin approval)", video.getId());
 
-            // 7. 로컬 파일 정리 (S3 업로드 완료 후)
-            deleteLocalFiles(message.getOriginalFilePath(), message.getOutputDirectory());
+            // 7. 원본 파일만 삭제 (인코딩 파일은 로컬에 유지)
+            deleteOriginalFile(message.getOriginalFilePath());
 
         } catch (Exception e) {
             log.error("Video encoding failed for ID: {}", message.getVideoId(), e);
@@ -106,72 +101,30 @@ public class VideoEncodingListener {
     }
 
     /**
-     * S3에 인코딩된 파일 업로드
+     * 로컬 인코딩 경로 정보를 DB에 저장
      */
-    private void uploadToS3(Video video, String encodedDir) {
-        try {
-            // S3 키 prefix: videos/{videoId}/
-            String s3Prefix = String.format("videos/%d/", video.getId());
+    private void saveLocalEncodedInfo(Video video, String encodedDir) {
+        String masterPlaylistPath = encodedDir + "/master.m3u8";
+        // 로컬 경로를 서빙 가능한 URL로 변환: encoded/{videoId}/master.m3u8
+        String localUrl = "/encoded/" + video.getId() + "/master.m3u8";
 
-            // 인코딩된 디렉토리 전체 업로드
-            Path encodedPath = Paths.get(encodedDir);
-            int uploadedCount = s3Service.uploadDirectory(encodedPath, s3Prefix);
+        video.updateS3Info(masterPlaylistPath, localUrl, localUrl);
+        videoRepository.save(video);
 
-            log.info("S3 upload completed: {} files uploaded to {}", uploadedCount, s3Prefix);
-
-            // S3 정보 업데이트
-            String s3Key = s3Prefix + "master.m3u8";
-            String s3Url = s3Service.getUrl(s3Key);
-            String cloudfrontUrl = s3Service.getUrl(s3Key); // CloudFront 설정 시 자동으로 CloudFront URL 반환
-
-            video.updateS3Info(s3Key, s3Url, cloudfrontUrl);
-            videoRepository.save(video);
-
-            log.info("Video S3 info updated - Key: {}, URL: {}", s3Key, cloudfrontUrl);
-
-        } catch (Exception e) {
-            log.error("S3 upload failed for video ID: {}", video.getId(), e);
-            throw new RuntimeException("S3 upload failed", e);
-        }
+        log.info("Local encoded info saved - Path: {}, URL: {}", masterPlaylistPath, localUrl);
     }
 
     /**
-     * 로컬 파일 정리 (인코딩 완료 후)
+     * 원본 파일만 삭제 (인코딩 파일은 로컬에 유지)
      */
-    private void deleteLocalFiles(String originalFilePath, String encodedDir) {
+    private void deleteOriginalFile(String originalFilePath) {
         try {
-            // 원본 파일 삭제
             File originalFile = new File(originalFilePath);
             if (originalFile.exists() && originalFile.delete()) {
                 log.info("Original file deleted: {}", originalFilePath);
             }
-
-            // 인코딩된 파일 디렉토리 삭제
-            File encodedDirFile = new File(encodedDir);
-            if (encodedDirFile.exists()) {
-                deleteDirectory(encodedDirFile);
-                log.info("Encoded directory deleted: {}", encodedDir);
-            }
-
         } catch (Exception e) {
-            log.warn("Failed to delete local files", e);
+            log.warn("Failed to delete original file: {}", originalFilePath, e);
         }
-    }
-
-    /**
-     * 디렉토리 재귀 삭제
-     */
-    private void deleteDirectory(File directory) {
-        File[] files = directory.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.isDirectory()) {
-                    deleteDirectory(file);
-                } else {
-                    file.delete();
-                }
-            }
-        }
-        directory.delete();
     }
 }
