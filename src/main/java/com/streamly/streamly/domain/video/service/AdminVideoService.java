@@ -8,6 +8,7 @@ import com.streamly.streamly.domain.video.repository.VideoRepository;
 import com.streamly.streamly.global.util.FileStorageUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,9 +24,12 @@ public class AdminVideoService {
 
     private final VideoRepository videoRepository;
     private final FileStorageUtil fileStorageUtil;
-    private final com.streamly.streamly.global.service.S3Service s3Service;
 
-    private static final String ENCODED_DIRECTORY = "encoded";
+    @Value("${video.upload.directory:uploads}")
+    private String uploadDirectory;
+
+    @Value("${video.encoded.directory:encoded}")
+    private String encodedDirectory;
 
     /**
      * 전체 영상 목록 조회 (필터링 가능)
@@ -138,7 +142,7 @@ public class AdminVideoService {
      */
     private void deleteLocalEncodedFiles(Video video) {
         try {
-            String encodedPath = ENCODED_DIRECTORY + "/" + video.getId();
+            String encodedPath = encodedDirectory + "/" + video.getId();
             java.nio.file.Path encodedDir = java.nio.file.Paths.get(encodedPath);
 
             if (java.nio.file.Files.exists(encodedDir)) {
@@ -166,12 +170,10 @@ public class AdminVideoService {
         try {
             if (video.getThumbnailUrl() != null && video.getThumbnailUrl().startsWith("/thumbnails/")) {
                 String thumbnailFileName = video.getThumbnailUrl().substring("/thumbnails/".length());
-                String thumbnailPath = "uploads/thumbnails/" + thumbnailFileName;
-
-                java.nio.file.Path path = java.nio.file.Paths.get(thumbnailPath);
+                java.nio.file.Path path = java.nio.file.Paths.get(uploadDirectory, "thumbnails", thumbnailFileName);
                 if (java.nio.file.Files.exists(path)) {
                     java.nio.file.Files.delete(path);
-                    log.info("로컬 썸네일 삭제 완료: {}", thumbnailPath);
+                    log.info("로컬 썸네일 삭제 완료: {}", path);
                 }
             }
         } catch (Exception e) {
@@ -180,20 +182,10 @@ public class AdminVideoService {
     }
 
     /**
-     * S3 파일 삭제
+     * S3 파일 삭제 (로컬 환경에서는 스킵)
      */
     private void deleteS3Files(Video video) {
-        try {
-            if (video.getS3Key() != null || video.getCloudfrontUrl() != null) {
-                String s3Prefix = "videos/" + video.getId() + "/";
-
-                s3Service.deleteDirectory(s3Prefix);
-
-                log.info("S3 파일 삭제 완료: {}", s3Prefix);
-            }
-        } catch (Exception e) {
-            log.warn("S3 파일 삭제 실패 (계속 진행): {}", e.getMessage());
-        }
+        log.info("로컬 환경: S3 삭제 스킵 - video ID: {}", video.getId());
     }
 
     /**

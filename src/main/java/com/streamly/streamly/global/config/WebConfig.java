@@ -16,8 +16,11 @@ import java.nio.file.Paths;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    @Value("${file.upload-dir:./uploads}")
+    @Value("${video.upload.directory:./uploads}")
     private String uploadDir;
+
+    @Value("${video.encoded.directory:./encoded}")
+    private String encodedDir;
 
     /**
      * CORS 설정
@@ -27,6 +30,21 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addMapping("/api/**")
                 .allowedOrigins("http://localhost:3000")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(3600);
+
+        // 정적 리소스 경로도 CORS 허용 (FE에서 직접 접근)
+        registry.addMapping("/encoded/**")
+                .allowedOrigins("http://localhost:3000")
+                .allowedMethods("GET", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(3600);
+
+        registry.addMapping("/thumbnails/**")
+                .allowedOrigins("http://localhost:3000")
+                .allowedMethods("GET", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true)
                 .maxAge(3600);
@@ -59,5 +77,16 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations(uploadPath)
                 .setCachePeriod(3600);
+
+        // 인코딩된 HLS 파일 경로 설정
+        String encodedPath = Paths.get(encodedDir)
+                .toAbsolutePath()
+                .normalize()
+                .toUri()
+                .toString();
+
+        registry.addResourceHandler("/encoded/**")
+                .addResourceLocations(encodedPath)
+                .setCachePeriod(0); // HLS는 캐시 안함
     }
 }
