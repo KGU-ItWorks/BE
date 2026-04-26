@@ -72,3 +72,8 @@ logging:
     com.streamly.streamly: DEBUG
     org.springframework.web: DEBUG
     org.hibernate.SQL: DEBUG
+
+ai:
+  server:
+    url: ${AI_SERVER_URL:http://localhost:8000}
+    api-prefix: ${AI_API_PREFIX:/api/v1}
