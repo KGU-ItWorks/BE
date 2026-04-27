@@ -63,6 +63,20 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 잘못된 상태 예외 처리
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException e) {
+        log.error("잘못된 상태 예외 발생: {}", e.getMessage());
+        ErrorResponse errorResponse = ErrorResponse.of(
+                HttpStatus.CONFLICT.value(),
+                "INVALID_STATE",
+                e.getMessage()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    /**
      * 접근 권한 예외 처리
      */
     @ExceptionHandler(AccessDeniedException.class)

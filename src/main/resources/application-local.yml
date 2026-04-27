@@ -42,6 +42,19 @@ video:
   encoded:
     directory: C:/ItWorks/encoded
 
+# --- 광고 영상 경로 ---
+ad:
+  video:
+    upload:
+      directory: C:/ItWorks/uploads/advideos
+  callback:
+    url: http://localhost:8080/api/v1/advertiser/callback/nuki
+
+# --- 누끼 결과 경로 ---
+nuki:
+  result:
+    directory: C:/ItWorks/nuki_results
+
 # --- AWS S3 → MinIO로 대체 ---
 aws:
   access-key: minioadmin
