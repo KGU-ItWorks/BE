@@ -8,7 +8,6 @@ import com.streamly.streamly.domain.user.entity.User;
 import com.streamly.streamly.domain.user.repository.UserRepository;
 import com.streamly.streamly.global.config.RabbitMQConfig;
 import com.streamly.streamly.global.exception.user.UserNotFoundException;
-import com.streamly.streamly.global.util.FileStorageUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -19,10 +18,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -32,17 +34,16 @@ public class AdVideoService {
 
     private final AdVideoRepository adVideoRepository;
     private final UserRepository userRepository;
-    private final FileStorageUtil fileStorageUtil;
     private final RabbitTemplate rabbitTemplate;
 
-    @Value("${ad.video.upload.directory:ad_uploads}")
+    @Value("${ad.video.upload.directory:C:/ItWorks/uploads/advideos}")
     private String adUploadDirectory;
 
-    @Value("${ad.callback.url:http://localhost:8080/api/v1/advertiser/callback}")
+    @Value("${ad.callback.url:http://localhost:8080/api/v1/advertiser/callback/nuki}")
     private String callbackUrl;
 
     /**
-     * 광고 영상 업로드 - 파일 저장 후 RabbitMQ로 AI 처리 요청
+     * 광고 영상 업로드 - C:/ItWorks/uploads/advideos/{uuid}/{원본파일명} 저장
      */
     @Transactional
     public AdVideoDto.Response uploadAdVideo(String email, AdVideoDto.UploadRequest request, MultipartFile videoFile) {
@@ -51,7 +52,7 @@ public class AdVideoService {
 
         validateVideoFile(videoFile);
 
-        String savedFilePath = fileStorageUtil.storeFile(videoFile);
+        String savedFilePath = storeAdVideo(videoFile);
 
         AdVideo adVideo = AdVideo.builder()
                 .advertiser(advertiser)
@@ -77,9 +78,35 @@ public class AdVideoService {
                 message
         );
 
-        log.info("광고 영상 업로드 완료 및 누끼 처리 요청 전송 - adVideoId: {}, advertiser: {}", saved.getId(), email);
+        log.info("광고 영상 업로드 완료 - adVideoId: {}, path: {}, advertiser: {}",
+                saved.getId(), savedFilePath, email);
 
         return AdVideoDto.Response.from(saved);
+    }
+
+    /**
+     * 광고 영상 파일 저장
+     * 저장 구조: {adUploadDirectory}/{uuid}/{원본파일명}
+     */
+    private String storeAdVideo(MultipartFile file) {
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || originalFilename.isEmpty()) {
+            throw new IllegalArgumentException("파일명이 유효하지 않습니다.");
+        }
+
+        String uuid = UUID.randomUUID().toString();
+        Path targetDir = Paths.get(adUploadDirectory, uuid);
+
+        try {
+            Files.createDirectories(targetDir);
+            Path targetPath = targetDir.resolve(originalFilename);
+            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+            log.info("광고 영상 저장 완료: {}", targetPath);
+            return targetPath.toString();
+        } catch (IOException e) {
+            log.error("광고 영상 저장 실패: {}", originalFilename, e);
+            throw new RuntimeException("광고 영상 파일을 저장할 수 없습니다.", e);
+        }
     }
 
     /**
@@ -139,10 +166,12 @@ public class AdVideoService {
 
         if (callback.isSuccess()) {
             adVideo.markDone(callback.getNukiDirPath());
-            log.info("누끼 처리 완료 - adVideoId: {}, nukiDirPath: {}", callback.getAdVideoId(), callback.getNukiDirPath());
+            log.info("누끼 처리 완료 - adVideoId: {}, nukiDirPath: {}",
+                    callback.getAdVideoId(), callback.getNukiDirPath());
         } else {
             adVideo.markFailed(callback.getFailReason());
-            log.warn("누끼 처리 실패 - adVideoId: {}, reason: {}", callback.getAdVideoId(), callback.getFailReason());
+            log.warn("누끼 처리 실패 - adVideoId: {}, reason: {}",
+                    callback.getAdVideoId(), callback.getFailReason());
         }
 
         adVideoRepository.save(adVideo);
@@ -158,39 +187,48 @@ public class AdVideoService {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("파일이 비어있습니다.");
         }
-        if (!fileStorageUtil.isVideoFile(file)) {
+        String contentType = file.getContentType();
+        if (contentType == null || (!contentType.startsWith("video/") && !contentType.equals("application/octet-stream"))) {
             throw new IllegalArgumentException("영상 파일만 업로드할 수 있습니다.");
         }
     }
 
+    /**
+     * 광고 영상 관련 파일 전체 삭제 (원본 + 누끼 결과)
+     * 저장 구조가 {adUploadDirectory}/{uuid}/{파일명} 이므로 uuid 디렉토리째 삭제
+     */
     private void deleteAdVideoFiles(AdVideo adVideo) {
-        // 원본 영상 삭제
+        // 원본 영상 디렉토리 삭제 ({adUploadDirectory}/{uuid}/ 전체)
         try {
             if (adVideo.getFilePath() != null) {
-                fileStorageUtil.deleteFile(adVideo.getFilePath());
-                log.info("광고 원본 파일 삭제 완료: {}", adVideo.getFilePath());
+                Path fileDir = Paths.get(adVideo.getFilePath()).getParent();
+                deleteDirectory(fileDir);
+                log.info("광고 영상 디렉토리 삭제 완료: {}", fileDir);
             }
         } catch (Exception e) {
-            log.warn("광고 원본 파일 삭제 실패 (계속 진행): {}", adVideo.getFilePath(), e);
+            log.warn("광고 영상 디렉토리 삭제 실패 (계속 진행): {}", adVideo.getFilePath(), e);
         }
 
-        // 누끼 결과 디렉토리 삭제
+        // 누끼 결과 디렉토리 삭제 (C:/ItWorks/nuki_results/{adVideoId}/)
         try {
             if (adVideo.getNukiDirPath() != null) {
-                Path nukiDir = Paths.get(adVideo.getNukiDirPath());
-                if (Files.exists(nukiDir)) {
-                    try (Stream<Path> paths = Files.walk(nukiDir)) {
-                        paths.sorted(Comparator.reverseOrder()).forEach(p -> {
-                            try { Files.delete(p); } catch (Exception ex) {
-                                log.warn("누끼 파일 삭제 실패: {}", p, ex);
-                            }
-                        });
-                    }
-                    log.info("누끼 결과 디렉토리 삭제 완료: {}", adVideo.getNukiDirPath());
-                }
+                deleteDirectory(Paths.get(adVideo.getNukiDirPath()));
+                log.info("누끼 결과 디렉토리 삭제 완료: {}", adVideo.getNukiDirPath());
             }
         } catch (Exception e) {
             log.warn("누끼 결과 디렉토리 삭제 실패 (계속 진행): {}", adVideo.getNukiDirPath(), e);
+        }
+    }
+
+    private void deleteDirectory(Path dir) throws IOException {
+        if (dir != null && Files.exists(dir)) {
+            try (Stream<Path> paths = Files.walk(dir)) {
+                paths.sorted(Comparator.reverseOrder()).forEach(p -> {
+                    try { Files.delete(p); } catch (Exception ex) {
+                        log.warn("파일 삭제 실패: {}", p, ex);
+                    }
+                });
+            }
         }
     }
 }
