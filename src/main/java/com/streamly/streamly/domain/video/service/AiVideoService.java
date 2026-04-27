@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.util.Map;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -52,6 +54,18 @@ public class AiVideoService {
         log.info("AI 서버 fetch 응답 - taskId: {}, ai server message: {}"
                 ,response != null ? response.getTaskId() : "응답 실패",response != null ? response.getMessage() : "응답 실패");
 
+//        // 비동기로 sam3 분석 요청
+//        if (response != null && response.getTaskId() != null) {
+//            webClient.post()
+//                    .uri(aiServerUrl + aiApiPrefix + "/sam3/analyze")
+//                    .bodyValue(Map.of("task_id", response.getTaskId()))
+//                    .retrieve()
+//                    .bodyToMono(Map.class)
+//                    .subscribe(
+//                            result -> log.info("SAM3 분석 시작 - taskId: {}", response.getTaskId()),
+//                            error -> log.error("SAM3 분석 요청 실패 - taskId: {}, error: {}", response.getTaskId(), error.getMessage())
+//                    );
+//        }
         return response;
     }
 }
