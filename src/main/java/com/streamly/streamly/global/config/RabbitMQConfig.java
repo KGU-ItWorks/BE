@@ -13,41 +13,50 @@ import org.springframework.context.annotation.Configuration;
 @EnableRabbit
 public class RabbitMQConfig {
 
-    // Queue 이름
+    // ── 인코딩 큐 ──────────────────────────────────────
     public static final String VIDEO_ENCODING_QUEUE = "video.encoding.queue";
-    
-    // Exchange 이름
     public static final String VIDEO_ENCODING_EXCHANGE = "video.encoding.exchange";
-    
-    // Routing Key
     public static final String VIDEO_ENCODING_ROUTING_KEY = "video.encoding";
+
+    // ── 광고 누끼 처리 큐 ────────────────────────────────
+    public static final String AD_NUKI_QUEUE = "ad.nuki.queue";
+    public static final String AD_NUKI_EXCHANGE = "ad.nuki.exchange";
+    public static final String AD_NUKI_ROUTING_KEY = "ad.nuki";
 
     /**
      * 인코딩 작업 큐
      */
     @Bean
     public Queue videoEncodingQueue() {
-        return QueueBuilder.durable(VIDEO_ENCODING_QUEUE)
-                .build();
+        return QueueBuilder.durable(VIDEO_ENCODING_QUEUE).build();
     }
 
-    /**
-     * Direct Exchange
-     */
     @Bean
     public DirectExchange videoEncodingExchange() {
         return new DirectExchange(VIDEO_ENCODING_EXCHANGE);
     }
 
-    /**
-     * Queue와 Exchange 바인딩
-     */
     @Bean
     public Binding videoEncodingBinding(Queue videoEncodingQueue, DirectExchange videoEncodingExchange) {
-        return BindingBuilder
-                .bind(videoEncodingQueue)
-                .to(videoEncodingExchange)
-                .with(VIDEO_ENCODING_ROUTING_KEY);
+        return BindingBuilder.bind(videoEncodingQueue).to(videoEncodingExchange).with(VIDEO_ENCODING_ROUTING_KEY);
+    }
+
+    /**
+     * 광고 누끼 처리 큐
+     */
+    @Bean
+    public Queue adNukiQueue() {
+        return QueueBuilder.durable(AD_NUKI_QUEUE).build();
+    }
+
+    @Bean
+    public DirectExchange adNukiExchange() {
+        return new DirectExchange(AD_NUKI_EXCHANGE);
+    }
+
+    @Bean
+    public Binding adNukiBinding(Queue adNukiQueue, DirectExchange adNukiExchange) {
+        return BindingBuilder.bind(adNukiQueue).to(adNukiExchange).with(AD_NUKI_ROUTING_KEY);
     }
 
     /**

@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: local
   # --- DB (공통: PostgreSQL) ---
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:streamly}
