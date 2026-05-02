@@ -44,6 +44,13 @@ public class CsrfHeaderFilter extends OncePerRequestFilter {
             return;
         }
 
+        // AI 서버 내부 콜백은 제외 (X-Requested-With 헤더 없이 호출됨)
+        if (requestUri.matches("/api/v1/videos/\\d+/ai-callback")
+                || requestUri.equals("/api/v1/advertiser/callback/nuki")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         // POST, PUT, DELETE 요청에 대해 커스텀 헤더 검증
         if ("POST".equals(method) || "PUT".equals(method) || "DELETE".equals(method)) {
             String customHeader = request.getHeader(CSRF_HEADER);
