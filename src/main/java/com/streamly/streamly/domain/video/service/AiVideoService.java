@@ -1,35 +1,28 @@
 package com.streamly.streamly.domain.video.service;
 
-import com.streamly.streamly.domain.video.dto.AiFetchRequest;
-import com.streamly.streamly.domain.video.dto.AiFetchResponse;
+import com.streamly.streamly.domain.video.dto.VideoFetchMessage;
 import com.streamly.streamly.domain.video.entity.Video;
 import com.streamly.streamly.domain.video.repository.VideoRepository;
+import com.streamly.streamly.global.config.RabbitMQConfig;
 import com.streamly.streamly.global.exception.video.VideoNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-
-import java.util.Map;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AiVideoService {
+
     private final VideoRepository videoRepository;
-    private final WebClient webClient;
-
-    @Value("${ai.server.url}")
-    private String aiServerUrl;
-
-    @Value("${ai.server.api-prefix:/api/v1}")
-    private String aiApiPrefix;
+    private final RabbitTemplate  rabbitTemplate;
 
     @Value("${server.base-url:http://localhost:8080}")
     private String beServerUrl;
 
-    public AiFetchResponse requestAiFetch(Long videoId,String startTime,Integer duration){
+    public void requestAiFetch(Long videoId, String startTime, Integer duration) {
         Video video = videoRepository.findById(videoId)
                 .orElseThrow(() -> new VideoNotFoundException("영상을 찾을 수 없습니다. id=" + videoId));
 
@@ -37,35 +30,23 @@ public class AiVideoService {
                 ? video.getCloudfrontUrl()
                 : video.getS3Url();
 
-        String videoUrl = rawUrl.startsWith("/")
-                ? beServerUrl + rawUrl
-                : rawUrl;
+        String videoUrl = rawUrl.startsWith("/") ? beServerUrl + rawUrl : rawUrl;
 
-        AiFetchRequest request = AiFetchRequest.from(videoId, videoUrl, startTime != null ? startTime : "00:00:00", duration);
+        VideoFetchMessage message = VideoFetchMessage.builder()
+                .videoId(videoId)
+                .videoUrl(videoUrl)
+                .startTime(startTime != null ? startTime : "00:00:00")
+                .duration(duration)
+                .callbackUrl(beServerUrl + "/api/v1/videos/" + videoId + "/ai-callback")
+                .build();
 
-        log.info("AI 서버 fetch 요청 - videoId: {}, url: {}", videoId, videoUrl);
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.VIDEO_FETCH_EXCHANGE,
+                RabbitMQConfig.VIDEO_FETCH_ROUTING_KEY,
+                message
+        );
 
-        AiFetchResponse response = webClient.post()
-                .uri(aiServerUrl + aiApiPrefix + "/video/fetch")
-                .bodyValue(request)
-                .retrieve()
-                .bodyToMono(AiFetchResponse.class)
-                .block();
-        log.info("AI 서버 fetch 응답 - taskId: {}, ai server message: {}"
-                ,response != null ? response.getTaskId() : "응답 실패",response != null ? response.getMessage() : "응답 실패");
-
-//        // 비동기로 sam3 분석 요청
-//        if (response != null && response.getTaskId() != null) {
-//            webClient.post()
-//                    .uri(aiServerUrl + aiApiPrefix + "/sam3/analyze")
-//                    .bodyValue(Map.of("task_id", response.getTaskId()))
-//                    .retrieve()
-//                    .bodyToMono(Map.class)
-//                    .subscribe(
-//                            result -> log.info("SAM3 분석 시작 - taskId: {}", response.getTaskId()),
-//                            error -> log.error("SAM3 분석 요청 실패 - taskId: {}, error: {}", response.getTaskId(), error.getMessage())
-//                    );
-//        }
-        return response;
+        log.info("AI fetch 메시지 발행 - videoId: {}, url: {}", videoId, videoUrl);
     }
 }
+

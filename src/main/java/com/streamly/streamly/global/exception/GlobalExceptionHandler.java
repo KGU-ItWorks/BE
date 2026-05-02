@@ -1,5 +1,6 @@
 package com.streamly.streamly.global.exception;
 
+import org.apache.catalina.connector.ClientAbortException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -103,6 +104,15 @@ public class GlobalExceptionHandler {
                 message
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    /**
+     * 클라이언트 연결 끊김 (영상 스트리밍 중 seek/중단) - 정상적인 상황이므로 조용히 무시
+     */
+    @ExceptionHandler(ClientAbortException.class)
+    public void handleClientAbortException(ClientAbortException e) {
+        log.debug("클라이언트 연결 끊김 (정상): {}", e.getMessage());
+        // 응답을 쓰지 않음 - 연결이 이미 끊겼으므로
     }
 
     /**

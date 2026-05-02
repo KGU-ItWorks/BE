@@ -1,6 +1,5 @@
 package com.streamly.streamly.domain.video.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.streamly.streamly.domain.video.dto.AiFetchResponse;
 import com.streamly.streamly.domain.video.dto.VideoResponse;
 import com.streamly.streamly.domain.video.dto.VideoUploadRequest;
@@ -260,16 +259,31 @@ public class VideoController {
     )
     @PreAuthorize("hasAnyRole('UPLOADER', 'ADMIN')")
     @PostMapping("/{videoId}/ai-fetch")
-    public ResponseEntity<AiFetchResponse> requestAiFetch(
+    public ResponseEntity<Void> requestAiFetch(
             @Parameter(hidden = true) Authentication authentication,
             @Parameter(description = "영상 ID", required = true)
             @PathVariable Long videoId,
             @Parameter(description = "시작 시간 (HH:mm:ss, 기본값: 00:00:00)")
             @RequestParam(defaultValue = "00:00:00") String startTime,
             @Parameter(description = "구간 길이(초), 미입력 시 끝까지")
-            @RequestParam(required = false) Integer duration){
+            @RequestParam(required = false) Integer duration) {
 
-        AiFetchResponse response = aiVideoService.requestAiFetch(videoId, startTime, duration);
-        return ResponseEntity.ok(response);
+        aiVideoService.requestAiFetch(videoId, startTime, duration);
+        return ResponseEntity.accepted().build();
+    }
+
+    @Operation(
+            summary = "AI 처리 완료 콜백",
+            description = "AI 서버가 영상 처리 완료 후 호출하는 내부 콜백 엔드포인트입니다."
+    )
+    @PostMapping("/{videoId}/ai-callback")
+    public ResponseEntity<Void> aiCallback(
+            @Parameter(description = "영상 ID", required = true)
+            @PathVariable Long videoId,
+            @RequestBody AiFetchResponse response) {
+
+        log.info("AI 콜백 수신 - videoId: {}, taskId: {}, message: {}",
+                videoId, response.getTaskId(), response.getMessage());
+        return ResponseEntity.ok().build();
     }
 }
