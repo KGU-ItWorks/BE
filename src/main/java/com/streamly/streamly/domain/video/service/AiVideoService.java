@@ -24,13 +24,9 @@ public class AiVideoService {
     @Value("${server.base-url:http://localhost:8080}")
     private String beServerUrl;
 
-    @Transactional
     public void requestAiFetch(Long videoId, String startTime, Integer duration, String objectPrompt) {
         Video video = videoRepository.findById(videoId)
                 .orElseThrow(() -> new VideoNotFoundException("영상을 찾을 수 없습니다. id=" + videoId));
-
-        video.resetSam3();
-        videoRepository.save(video);
 
         String rawUrl = video.getCloudfrontUrl() != null
                 ? video.getCloudfrontUrl()
@@ -60,12 +56,6 @@ public class AiVideoService {
     public void handleAiCallback(Long videoId, AiFetchResponse response) {
         Video video = videoRepository.findById(videoId)
                 .orElseThrow(() -> new VideoNotFoundException("영상을 찾을 수 없습니다. id=" + videoId));
-
-        // 이미 성공한 경우만 중복 콜백 무시 — 실패 상태는 재시도 허용
-        if (video.getSam3ResultDir() != null) {
-            log.warn("중복 AI 콜백 수신 무시 - videoId: {}, taskId: {}", videoId, response.getTaskId());
-            return;
-        }
 
         if (response.isSuccess()) {
             video.markSam3Done(response.getResultDir());

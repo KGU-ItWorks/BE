@@ -163,11 +163,6 @@ public class Video {
             && this.approvalStatus == ApprovalStatus.APPROVED;
     }
 
-    public void resetSam3() {
-        this.sam3ResultDir = null;
-        this.sam3FailReason = null;
-    }
-
     public void markSam3Done(String resultDir) {
         this.sam3ResultDir = resultDir;
         this.sam3FailReason = null;

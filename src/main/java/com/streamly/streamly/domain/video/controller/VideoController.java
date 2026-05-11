@@ -267,7 +267,7 @@ public class VideoController {
             @RequestParam(defaultValue = "00:00:00") String startTime,
             @Parameter(description = "구간 길이(초), 미입력 시 끝까지")
             @RequestParam(required = false) Integer duration,
-            @Parameter(description = "영상 ID", required = true)
+            @Parameter(description = "객체 탐지 프롬프트", required = true)
             @RequestParam String objectPrompt) {
 
         aiVideoService.requestAiFetch(videoId, startTime, duration, objectPrompt);
