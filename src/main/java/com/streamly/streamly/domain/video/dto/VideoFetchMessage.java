@@ -16,5 +16,6 @@ public class VideoFetchMessage implements Serializable {
     private String  videoUrl;
     private String  startTime;
     private Integer duration;
+    private String objectPrompt;
     private String  callbackUrl; // AI 처리 완료 후 BE에 콜백할 URL
 }
