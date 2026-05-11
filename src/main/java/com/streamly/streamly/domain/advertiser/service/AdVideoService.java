@@ -4,6 +4,7 @@ import com.streamly.streamly.domain.advertiser.dto.AdNukiMessage;
 import com.streamly.streamly.domain.advertiser.dto.AdVideoDto;
 import com.streamly.streamly.domain.advertiser.entity.AdObjectCategory;
 import com.streamly.streamly.domain.advertiser.entity.AdVideo;
+import com.streamly.streamly.domain.advertiser.entity.AdVideoStatus;
 import com.streamly.streamly.domain.advertiser.repository.AdVideoRepository;
 import com.streamly.streamly.domain.user.entity.User;
 import com.streamly.streamly.domain.user.repository.UserRepository;
@@ -85,11 +86,18 @@ public class AdVideoService {
                 .objectPrompt(objectPrompt)
                 .build();
 
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.AD_NUKI_EXCHANGE,
-                RabbitMQConfig.AD_NUKI_ROUTING_KEY,
-                message
-        );
+        try {
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.AD_NUKI_EXCHANGE,
+                    RabbitMQConfig.AD_NUKI_ROUTING_KEY,
+                    message
+            );
+            saved.markProcessing();
+        } catch (Exception e) {
+            log.error("RabbitMQ 발행 실패 - adVideoId: {}", saved.getId(), e);
+            try { deleteDirectory(Paths.get(savedFilePath).getParent()); } catch (Exception ignored) {}
+            throw new RuntimeException("AI 처리 요청에 실패했습니다. 잠시 후 다시 시도해주세요.", e);
+        }
 
         log.info("광고 영상 업로드 완료 - adVideoId: {}, path: {}, advertiser: {}",
                 saved.getId(), savedFilePath, email);
@@ -176,6 +184,12 @@ public class AdVideoService {
     public void handleNukiCallback(AdVideoDto.NukiCallbackRequest callback) {
         AdVideo adVideo = adVideoRepository.findById(callback.getAdVideoId())
                 .orElseThrow(() -> new IllegalArgumentException("광고 영상을 찾을 수 없습니다."));
+
+        // 이미 종료 상태면 중복 콜백 무시 (멱등성 보장)
+        if (adVideo.getStatus() == AdVideoStatus.DONE || adVideo.getStatus() == AdVideoStatus.FAILED) {
+            log.warn("중복 콜백 수신 무시 - adVideoId: {}, 현재상태: {}", callback.getAdVideoId(), adVideo.getStatus());
+            return;
+        }
 
         if (callback.isSuccess()) {
             adVideo.markDone(callback.getNukiDirPath());

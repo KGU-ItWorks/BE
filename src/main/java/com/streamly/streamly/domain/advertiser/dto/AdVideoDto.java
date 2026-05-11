@@ -1,5 +1,6 @@
 package com.streamly.streamly.domain.advertiser.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.streamly.streamly.domain.advertiser.entity.AdObjectCategory;
 import com.streamly.streamly.domain.advertiser.entity.AdVideo;
 import lombok.*;
@@ -74,9 +75,12 @@ public class AdVideoDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class NukiCallbackRequest {
+        @JsonProperty("ad_video_id")
         private Long adVideoId;
         private boolean success;
-        private String nukiDirPath; // 처리 성공 시 누끼 저장 경로
-        private String failReason;  // 처리 실패 시 사유
+        @JsonProperty("nuki_dir_path")
+        private String nukiDirPath;
+        @JsonProperty("fail_reason")
+        private String failReason;
     }
 }
