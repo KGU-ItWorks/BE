@@ -266,9 +266,11 @@ public class VideoController {
             @Parameter(description = "시작 시간 (HH:mm:ss, 기본값: 00:00:00)")
             @RequestParam(defaultValue = "00:00:00") String startTime,
             @Parameter(description = "구간 길이(초), 미입력 시 끝까지")
-            @RequestParam(required = false) Integer duration) {
+            @RequestParam(required = false) Integer duration,
+            @Parameter(description = "영상 ID", required = true)
+            @RequestParam String objectPrompt) {
 
-        aiVideoService.requestAiFetch(videoId, startTime, duration);
+        aiVideoService.requestAiFetch(videoId, startTime, duration, objectPrompt);
         return ResponseEntity.accepted().build();
     }
 
@@ -282,8 +284,9 @@ public class VideoController {
             @PathVariable Long videoId,
             @RequestBody AiFetchResponse response) {
 
-        log.info("AI 콜백 수신 - videoId: {}, taskId: {}, message: {}",
-                videoId, response.getTaskId(), response.getMessage());
+        log.info("AI 콜백 수신 - videoId: {}, taskId: {}, success: {}",
+                videoId, response.getTaskId(), response.isSuccess());
+        aiVideoService.handleAiCallback(videoId, response);
         return ResponseEntity.ok().build();
     }
 }

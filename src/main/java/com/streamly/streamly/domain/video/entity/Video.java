@@ -110,6 +110,14 @@ public class Video {
     @Column(name = "published_at")
     private LocalDateTime publishedAt; // 실제 공개 시간
 
+    // SAM3 분석 결과 저장 경로 (AI fetch 완료 후 설정)
+    @Column(name = "sam3_result_dir")
+    private String sam3ResultDir;
+
+    // SAM3 분석 실패 사유
+    @Column(name = "sam3_fail_reason")
+    private String sam3FailReason;
+
     // 비즈니스 메서드
     public void updateStatus(VideoStatus status) {
         this.status = status;
@@ -153,5 +161,19 @@ public class Video {
     public boolean isPublished() {
         return this.status == VideoStatus.COMPLETED 
             && this.approvalStatus == ApprovalStatus.APPROVED;
+    }
+
+    public void resetSam3() {
+        this.sam3ResultDir = null;
+        this.sam3FailReason = null;
+    }
+
+    public void markSam3Done(String resultDir) {
+        this.sam3ResultDir = resultDir;
+        this.sam3FailReason = null;
+    }
+
+    public void markSam3Failed(String reason) {
+        this.sam3FailReason = reason;
     }
 }

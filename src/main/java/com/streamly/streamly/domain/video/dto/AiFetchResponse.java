@@ -11,10 +11,19 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AiFetchResponse {
-    //ai 서버는 스네이크 케이스 사용
+    // AI 서버는 스네이크 케이스 사용
     @JsonProperty("task_id")
     private String taskId;
 
     @JsonProperty("message")
     private String message;
+
+    @JsonProperty("success")
+    private boolean success;
+
+    @JsonProperty("fail_reason")
+    private String failReason;
+
+    @JsonProperty("result_dir")
+    private String resultDir;
 }
