@@ -65,6 +65,17 @@ public class AdVideoController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "누끼 이미지 목록 조회")
+    @GetMapping("/{adVideoId}/nuki")
+    public ResponseEntity<AdVideoDto.NukiImagesResponse> getNukiImages(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long adVideoId) {
+
+        AdVideoDto.NukiImagesResponse response = adVideoService.getNukiImages(
+                userDetails.getUsername(), adVideoId);
+        return ResponseEntity.ok(response);
+    }
+
     @Operation(summary = "내 광고 영상 삭제")
     @DeleteMapping("/{adVideoId}")
     public ResponseEntity<String> deleteMyAdVideo(

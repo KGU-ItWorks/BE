@@ -47,6 +47,11 @@ public class AdVideo extends BaseEntity {
     @Builder.Default
     private AdVideoStatus status = AdVideoStatus.PENDING;
 
+    // 객체 카테고리 (SAM3 프롬프트 결정용)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "object_category")
+    private AdObjectCategory objectCategory;
+
     // AI 처리 실패 사유
     @Column(name = "fail_reason")
     private String failReason;

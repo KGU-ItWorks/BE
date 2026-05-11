@@ -13,6 +13,7 @@ import java.io.Serializable;
 @Builder
 public class AdNukiMessage implements Serializable {
     private Long adVideoId;
-    private String filePath;      // 로컬 저장된 광고 영상 경로
-    private String callbackUrl;   // AI 처리 완료 후 BE에 콜백할 URL
+    private String filePath;       // 로컬 저장된 광고 영상 경로
+    private String callbackUrl;    // AI 처리 완료 후 BE에 콜백할 URL
+    private String objectPrompt;   // SAM3 텍스트 프롬프트 (카테고리에서 변환)
 }
