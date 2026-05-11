@@ -39,3 +39,6 @@ out/
 .env
 uploads
 encoded
+
+### Claude Code ###
+.claude/
