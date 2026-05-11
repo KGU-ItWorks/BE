@@ -83,6 +83,10 @@ cookie:
 frontend:
   url: ${FRONTEND_URL:http://localhost:3000}
 
+# --- 서버 URL ---
+server:
+  url: ${SERVER_URL:http://localhost:8080}
+
 # --- 영상 처리 경로 ---
 video:
   upload:
@@ -95,6 +99,16 @@ ffmpeg:
   path: ${FFMPEG_PATH:ffmpeg}
 ffprobe:
   path: ${FFPROBE_PATH:ffprobe}
+
+# --- 광고 영상 처리 ---
+ad:
+  video:
+    upload:
+      directory: ${AD_VIDEO_DIR:C:/ItWorks/uploads/advideos}
+  nuki:
+    directory: ${AD_NUKI_DIR:C:/ItWorks/nuki_results}
+  callback:
+    url: ${AD_CALLBACK_URL:http://localhost:8080/api/v1/advertiser/callback/nuki}
 
 # --- AWS S3 ---
 aws:

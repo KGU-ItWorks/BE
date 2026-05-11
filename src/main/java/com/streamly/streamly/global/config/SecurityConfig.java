@@ -82,7 +82,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/test/**").permitAll()
                         .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login").permitAll()
                         .requestMatchers("/api/v1/auth/refresh").permitAll()
-                        .requestMatchers("/thumbnails/**", "/uploads/**", "/encoded/**").permitAll()
+                        .requestMatchers("/thumbnails/**", "/uploads/**", "/encoded/**", "/nuki/**").permitAll()
                         // [수정] Actuator 경로도 접두사 포함 허용
                         .requestMatchers("/actuator/**", "/api/actuator/**").permitAll()
                         .requestMatchers("/api/v1/users/me").authenticated()
