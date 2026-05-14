@@ -1,6 +1,7 @@
 package com.streamly.streamly.domain.video.controller;
 
 import com.streamly.streamly.domain.user.entity.User;
+import com.streamly.streamly.domain.user.repository.UserRepository;
 import com.streamly.streamly.domain.video.dto.VideoUploadRequest;
 import com.streamly.streamly.domain.video.dto.VideoUploadResponse;
 import com.streamly.streamly.domain.video.service.VideoUploadService;
@@ -14,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,6 +29,7 @@ import java.io.IOException;
 public class VideoUploadController {
 
     private final VideoUploadService videoUploadService;
+    private final UserRepository userRepository;
 
     /**
      * 영상 업로드 API
@@ -51,12 +54,15 @@ public class VideoUploadController {
             
             @Parameter(description = "썸네일 이미지 (선택사항)")
             @RequestPart(value = "thumbnailFile", required = false) MultipartFile thumbnailFile,
-            
-            @AuthenticationPrincipal User user
+
+            @AuthenticationPrincipal UserDetails userDetails
     ) {
         try {
+            User user = userRepository.findByEmail(userDetails.getUsername())
+                    .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
             log.info("Video upload request received from user: {}", user.getEmail());
-            
+
             VideoUploadResponse response = videoUploadService.uploadVideo(
                     request,
                     videoFile,
