@@ -52,29 +52,11 @@ public class AiVideoService {
         }
         String videoUrl = rawUrl.startsWith("/") ? beServerUrl + rawUrl : rawUrl;
 
-        // Build a draft message without callbackUrl to get compositionId first
-        VideoComposeMessage draft = VideoComposeMessage.builder()
-                .videoId(videoId)
-                .videoUrl(videoUrl)
-                .startTime(startTime != null ? startTime : "00:00:00")
-                .duration(duration)
-                .objectPrompt(objectPrompt)
-                .callbackUrl("")
-                .build();
-
+        VideoComposeMessage draft = VideoComposeMessage.draft(videoId, videoUrl, startTime, duration, objectPrompt);
         Long compositionId = videoCompositionService.initialSave(draft);
 
-        // Now build the real message with compositionId embedded in the callback URL
         String callbackUrl = beServerUrl + "/api/v1/video-compositions/" + compositionId + "/callback";
-
-        VideoComposeMessage message = VideoComposeMessage.builder()
-                .videoId(videoId)
-                .videoUrl(videoUrl)
-                .startTime(draft.getStartTime())
-                .duration(duration)
-                .objectPrompt(objectPrompt)
-                .callbackUrl(callbackUrl)
-                .build();
+        VideoComposeMessage message = VideoComposeMessage.withCallback(draft, callbackUrl);
 
         rabbitTemplate.convertAndSend(
                 RabbitMQConfig.VIDEO_FETCH_EXCHANGE,
