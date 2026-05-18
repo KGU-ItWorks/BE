@@ -11,7 +11,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class VideoFetchMessage implements Serializable {
+public class VideoComposeMessage implements Serializable {
     private Long    videoId;
     private String  videoUrl;
     private String  startTime;

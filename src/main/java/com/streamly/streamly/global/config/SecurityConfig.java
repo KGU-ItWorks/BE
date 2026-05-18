@@ -95,6 +95,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/admin/advertiser-requests/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/videos").permitAll()
                         .requestMatchers("/api/v1/videos/**").permitAll()
+                        .requestMatchers("/api/v1/video-compositions/*/callback").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2

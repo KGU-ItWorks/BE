@@ -1,10 +1,10 @@
 package com.streamly.streamly.domain.video.controller;
 
-import com.streamly.streamly.domain.video.dto.AiFetchResponse;
 import com.streamly.streamly.domain.video.dto.VideoResponse;
 import com.streamly.streamly.domain.video.dto.VideoUploadRequest;
 import com.streamly.streamly.domain.video.service.AiVideoService;
 import com.streamly.streamly.domain.video.service.VideoService;
+import com.streamly.streamly.domain.videoComposition.service.PlaylistResolverService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,6 +31,7 @@ public class VideoController {
 
     private final VideoService videoService;
     private final AiVideoService aiVideoService;
+    private final PlaylistResolverService playlistResolverService;
 
     @Operation(
         summary = "영상 업로드",
@@ -254,39 +255,19 @@ public class VideoController {
     }
 
     @Operation(
-            summary = "AI 영상 분석 요청 (SAM3)",
-            description = "AI 서버에 특정 영상의 구간 다운로드 및 SAM3 분석을 요청합니다."
+        summary = "영상 플레이리스트 URL 조회",
+        description = "사용자 맞춤 HLS 마스터 플레이리스트 경로를 반환합니다. " +
+                      "합성된 버전이 있으면 해당 버전을, 없으면 원본 플레이리스트를 반환합니다."
     )
-    @PreAuthorize("hasAnyRole('UPLOADER', 'ADMIN')")
-    @PostMapping("/{videoId}/ai-fetch")
-    public ResponseEntity<Void> requestAiFetch(
-            @Parameter(hidden = true) Authentication authentication,
+    @GetMapping("/{videoId}/playlist")
+    public ResponseEntity<java.util.Map<String, String>> getPlaylistUrl(
             @Parameter(description = "영상 ID", required = true)
             @PathVariable Long videoId,
-            @Parameter(description = "시작 시간 (HH:mm:ss, 기본값: 00:00:00)")
-            @RequestParam(defaultValue = "00:00:00") String startTime,
-            @Parameter(description = "구간 길이(초), 미입력 시 끝까지")
-            @RequestParam(required = false) Integer duration,
-            @Parameter(description = "객체 탐지 프롬프트", required = true)
-            @RequestParam String objectPrompt) {
+            @Parameter(hidden = true) Authentication authentication) {
 
-        aiVideoService.requestAiFetch(videoId, startTime, duration, objectPrompt);
-        return ResponseEntity.accepted().build();
+        String userEmail = authentication != null ? authentication.getName() : null;
+        String playlistUrl = playlistResolverService.resolve(videoId, userEmail);
+        return ResponseEntity.ok(java.util.Map.of("playlistUrl", playlistUrl));
     }
 
-    @Operation(
-            summary = "AI 처리 완료 콜백",
-            description = "AI 서버가 영상 처리 완료 후 호출하는 내부 콜백 엔드포인트입니다."
-    )
-    @PostMapping("/{videoId}/ai-callback")
-    public ResponseEntity<Void> aiCallback(
-            @Parameter(description = "영상 ID", required = true)
-            @PathVariable Long videoId,
-            @RequestBody AiFetchResponse response) {
-
-        log.info("AI 콜백 수신 - videoId: {}, taskId: {}, success: {}",
-                videoId, response.getTaskId(), response.isSuccess());
-        aiVideoService.handleAiCallback(videoId, response);
-        return ResponseEntity.ok().build();
-    }
 }
