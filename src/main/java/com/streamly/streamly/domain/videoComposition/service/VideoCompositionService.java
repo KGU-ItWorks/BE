@@ -54,6 +54,15 @@ public class VideoCompositionService {
         }
     }
 
+    @Transactional
+    public void markFailed(Long compositionId, String reason) {
+        videoCompositionRepository.findById(compositionId).ifPresent(composition -> {
+            if (!composition.getStatus().isTerminal()) {
+                composition.markFailed(reason);
+            }
+        });
+    }
+
     private String toJson(Object value) {
         if (value == null) return null;
         try {

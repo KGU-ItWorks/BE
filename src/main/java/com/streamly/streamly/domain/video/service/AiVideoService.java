@@ -58,13 +58,18 @@ public class AiVideoService {
         String callbackUrl = beServerUrl + "/api/v1/video-compositions/" + compositionId + "/callback";
         VideoComposeMessage message = VideoComposeMessage.withCallback(draft, callbackUrl);
 
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.VIDEO_FETCH_EXCHANGE,
-                RabbitMQConfig.VIDEO_FETCH_ROUTING_KEY,
-                message
-        );
-
-        log.info("AI 합성 요청 - videoId: {}, compositionId: {}, callbackUrl: {}",
-                videoId, compositionId, callbackUrl);
+        try {
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.VIDEO_FETCH_EXCHANGE,
+                    RabbitMQConfig.VIDEO_FETCH_ROUTING_KEY,
+                    message
+            );
+            log.info("AI 합성 요청 - videoId: {}, compositionId: {}, callbackUrl: {}",
+                    videoId, compositionId, callbackUrl);
+        } catch (Exception e) {
+            log.error("RabbitMQ 메시지 발행 실패 - compositionId: {}, error: {}", compositionId, e.getMessage());
+            videoCompositionService.markFailed(compositionId, "MQ 발행 실패: " + e.getMessage());
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "AI 합성 요청 중 오류가 발생했습니다.");
+        }
     }
 }
