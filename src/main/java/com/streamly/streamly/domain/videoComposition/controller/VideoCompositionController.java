@@ -38,7 +38,8 @@ public class VideoCompositionController {
             @Parameter(description = "객체 탐지 프롬프트", required = true)
             @RequestParam String objectPrompt) {
 
-        aiVideoService.requestAiComposition(videoId, startTime, duration, objectPrompt);
+        String requesterEmail = authentication.getName();
+        aiVideoService.requestAiComposition(requesterEmail, videoId, startTime, duration, objectPrompt);
         return ResponseEntity.accepted().build();
     }
 
