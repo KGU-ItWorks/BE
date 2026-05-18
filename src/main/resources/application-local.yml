@@ -1,7 +1,7 @@
 spring:
   # --- DB (로컬 PostgreSQL) ---
   datasource:
-    url: jdbc:postgresql://localhost:5432/streamly
+    url: jdbc:postgresql://localhost:5433/streamly
     username: streamly
     password: streamly123
   jpa:

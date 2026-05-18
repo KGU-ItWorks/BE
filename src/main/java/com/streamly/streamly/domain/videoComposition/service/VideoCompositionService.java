@@ -20,6 +20,10 @@ public class VideoCompositionService {
 
     @Transactional
     public Long initialSave(VideoComposeMessage message) {
+        if (message.getVideoId() == null || message.getObjectPrompt() == null
+                || message.getStartTime() == null || message.getDuration() == null) {
+            throw new IllegalArgumentException("합성 요청 필수값이 누락되었습니다.");
+        }
         VideoComposition composition = VideoComposition.builder()
                 .videoId(message.getVideoId())
                 .objectPrompt(message.getObjectPrompt())
@@ -34,6 +38,11 @@ public class VideoCompositionService {
         VideoComposition composition = videoCompositionRepository.findById(compositionId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "VideoComposition을 찾을 수 없습니다. id=" + compositionId));
+
+        if (composition.getStatus().isTerminal()) {
+            log.info("중복 콜백 무시 - compositionId: {}, 현재 상태: {}", compositionId, composition.getStatus());
+            return;
+        }
 
         if (response.isSuccess()) {
             String replacedSegmentsJson = toJson(response.getReplacedSegIndices());
