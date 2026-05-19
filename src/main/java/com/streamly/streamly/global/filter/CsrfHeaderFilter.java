@@ -47,6 +47,8 @@ public class CsrfHeaderFilter extends OncePerRequestFilter {
         // AI 서버 내부 콜백은 제외 (X-Requested-With 헤더 없이 호출됨)
         if (requestUri.matches("/api/v1/videos/\\d+/ai-callback")
                 || requestUri.matches("/api/v1/video-compositions/\\d+/callback")
+                || requestUri.matches("/api/v1/video-compositions/\\d+/start")
+                || requestUri.matches("/api/v1/video-compositions/\\d+/heartbeat")
                 || requestUri.equals("/api/v1/advertiser/callback/nuki")) {
             filterChain.doFilter(request, response);
             return;

@@ -3,6 +3,8 @@ package com.streamly.streamly.domain.videoComposition.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.streamly.streamly.domain.video.dto.AiFetchResponse;
 import com.streamly.streamly.domain.video.dto.VideoComposeMessage;
+import com.streamly.streamly.domain.videoComposition.dto.VideoCompositionStatusResponse;
+import com.streamly.streamly.domain.videoComposition.entity.CompositionStatus;
 import com.streamly.streamly.domain.videoComposition.entity.VideoComposition;
 import com.streamly.streamly.domain.videoComposition.repository.VideoCompositionRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class VideoCompositionService {
 
     private final VideoCompositionRepository videoCompositionRepository;
+    private final HeartbeatStore heartbeatStore;
+    private final CompositionStatusPromoter statusPromoter;
     private final ObjectMapper objectMapper;
 
     @Transactional
@@ -30,7 +34,9 @@ public class VideoCompositionService {
                 .startTime(message.getStartTime())
                 .duration(message.getDuration())
                 .build();
-        return videoCompositionRepository.save(composition).getId();
+        Long id = videoCompositionRepository.save(composition).getId();
+        heartbeatStore.trackQueued(id);
+        return id;
     }
 
     @Transactional
@@ -44,6 +50,8 @@ public class VideoCompositionService {
             return;
         }
 
+        heartbeatStore.remove(compositionId);
+
         if (response.isSuccess()) {
             String replacedSegmentsJson = toJson(response.getReplacedSegIndices());
             composition.markCompleted(response.getTaskId(), response.getComposedPath(), replacedSegmentsJson);
@@ -55,12 +63,44 @@ public class VideoCompositionService {
     }
 
     @Transactional
+    public void markProcessing(Long compositionId) {
+        VideoComposition composition = videoCompositionRepository.findById(compositionId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "VideoComposition을 찾을 수 없습니다. id=" + compositionId));
+        if (!composition.getStatus().isTerminal()) {
+            composition.markProcessing();
+            log.info("합성 처리 시작 - compositionId: {}", compositionId);
+        }
+    }
+
+    /**
+     * Records the heartbeat in memory — no DB connection acquired on normal ticks.
+     * On the first heartbeat, delegates to CompositionStatusPromoter (a separate
+     * Spring bean) so that @Transactional is honoured via AOP proxy.
+     */
+    public void updateHeartbeat(Long compositionId) {
+        boolean isFirst = heartbeatStore.recordAndIsFirst(compositionId);
+        if (isFirst) {
+            statusPromoter.promoteQueuedToProcessing(compositionId);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public VideoCompositionStatusResponse getStatus(Long compositionId) {
+        VideoComposition composition = videoCompositionRepository.findById(compositionId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "VideoComposition을 찾을 수 없습니다. id=" + compositionId));
+        return VideoCompositionStatusResponse.from(composition);
+    }
+
+    @Transactional
     public void markFailed(Long compositionId, String reason) {
         videoCompositionRepository.findById(compositionId).ifPresent(composition -> {
             if (!composition.getStatus().isTerminal()) {
                 composition.markFailed(reason);
             }
         });
+        heartbeatStore.remove(compositionId);
     }
 
     private String toJson(Object value) {

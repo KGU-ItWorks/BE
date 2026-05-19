@@ -57,6 +57,9 @@ public class VideoComposition {
     @Column(name = "published_at")
     private LocalDateTime publishedAt;
 
+    @Column(name = "last_heartbeat_at")
+    private LocalDateTime lastHeartbeatAt;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
@@ -66,6 +69,15 @@ public class VideoComposition {
     @Column(nullable = false)
     @Builder.Default
     private AdvertiserApprovalStatus approvalStatus = AdvertiserApprovalStatus.PENDING;
+
+    public void markProcessing() {
+        this.status = CompositionStatus.PROCESSING;
+        this.lastHeartbeatAt = LocalDateTime.now();
+    }
+
+    public void updateHeartbeat() {
+        this.lastHeartbeatAt = LocalDateTime.now();
+    }
 
     public void markCompleted(String taskId, String composedPath, String replacedSegments) {
         this.taskId = taskId;
