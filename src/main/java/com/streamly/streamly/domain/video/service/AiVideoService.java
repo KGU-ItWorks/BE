@@ -31,7 +31,7 @@ public class AiVideoService {
     @Value("${server.base-url:http://localhost:8080}")
     private String beServerUrl;
 
-    public void requestAiComposition(String requesterEmail, Long videoId, String startTime, Integer duration, String objectPrompt) {
+    public Long requestAiComposition(String requesterEmail, Long videoId, String startTime, Integer duration, String objectPrompt) {
         User requester = userRepository.findByEmail(requesterEmail)
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
 
@@ -66,6 +66,7 @@ public class AiVideoService {
             );
             log.info("AI 합성 요청 - videoId: {}, compositionId: {}, callbackUrl: {}",
                     videoId, compositionId, callbackUrl);
+            return compositionId;
         } catch (Exception e) {
             log.error("RabbitMQ 메시지 발행 실패 - compositionId: {}, error: {}", compositionId, e.getMessage());
             videoCompositionService.markFailed(compositionId, "MQ 발행 실패: " + e.getMessage());

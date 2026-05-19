@@ -2,6 +2,7 @@ package com.streamly.streamly.domain.videoComposition.controller;
 
 import com.streamly.streamly.domain.video.dto.AiFetchResponse;
 import com.streamly.streamly.domain.video.service.AiVideoService;
+import com.streamly.streamly.domain.videoComposition.dto.VideoCompositionStatusResponse;
 import com.streamly.streamly.domain.videoComposition.service.VideoCompositionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -11,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -27,7 +30,7 @@ public class VideoCompositionController {
     )
     @PreAuthorize("hasAnyRole('UPLOADER', 'ADMIN')")
     @PostMapping("/{videoId}/ai-fetch")
-    public ResponseEntity<Void> queueAiComposition(
+    public ResponseEntity<Map<String, Long>> queueAiComposition(
             @Parameter(hidden = true) Authentication authentication,
             @Parameter(description = "영상 ID", required = true)
             @PathVariable Long videoId,
@@ -39,8 +42,37 @@ public class VideoCompositionController {
             @RequestParam String objectPrompt) {
 
         String requesterEmail = authentication.getName();
-        aiVideoService.requestAiComposition(requesterEmail, videoId, startTime, duration, objectPrompt);
-        return ResponseEntity.accepted().build();
+        Long compositionId = aiVideoService.requestAiComposition(requesterEmail, videoId, startTime, duration, objectPrompt);
+        return ResponseEntity.accepted().body(Map.of("compositionId", compositionId));
+    }
+
+    @Operation(
+            summary = "합성 상태 조회",
+            description = "compositionId로 AI 합성 진행 상태를 조회합니다."
+    )
+    @GetMapping("/{compositionId}/status")
+    public ResponseEntity<VideoCompositionStatusResponse> getStatus(
+            @Parameter(description = "합성 요청 ID", required = true)
+            @PathVariable Long compositionId) {
+        return ResponseEntity.ok(videoCompositionService.getStatus(compositionId));
+    }
+
+    @Operation(summary = "AI 합성 시작 알림", description = "AI 서버가 작업을 시작할 때 호출하는 내부 엔드포인트입니다.")
+    @PostMapping("/{compositionId}/start")
+    public ResponseEntity<Void> aiStart(
+            @Parameter(description = "합성 요청 ID", required = true)
+            @PathVariable Long compositionId) {
+        videoCompositionService.markProcessing(compositionId);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "AI 하트비트", description = "AI 서버가 처리 중 주기적으로 호출하는 생존 신호 엔드포인트입니다.")
+    @PostMapping("/{compositionId}/heartbeat")
+    public ResponseEntity<Void> aiHeartbeat(
+            @Parameter(description = "합성 요청 ID", required = true)
+            @PathVariable Long compositionId) {
+        videoCompositionService.updateHeartbeat(compositionId);
+        return ResponseEntity.ok().build();
     }
 
     @Operation(

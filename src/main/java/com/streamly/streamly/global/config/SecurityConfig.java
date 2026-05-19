@@ -96,6 +96,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/videos").permitAll()
                         .requestMatchers("/api/v1/videos/**").permitAll()
                         .requestMatchers("/api/v1/video-compositions/*/callback").permitAll()
+                        .requestMatchers("/api/v1/video-compositions/*/start").permitAll()
+                        .requestMatchers("/api/v1/video-compositions/*/heartbeat").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
