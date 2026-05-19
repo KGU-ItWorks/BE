@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Component
@@ -21,21 +22,29 @@ public class CompositionTimeoutScheduler {
 
     // How long a job can sit in the queue before we assume the AI server never got it.
     // Must be long enough for the AI server to finish any prior job before picking this one up.
-    private static final int QUEUED_TIMEOUT_MINUTES   = 30;
+    private static final int QUEUED_TIMEOUT_MINUTES    = 30;
     private static final int HEARTBEAT_TIMEOUT_SECONDS = 90;
+
+    // Every this many ticks we bypass the in-memory gate and query the DB directly.
+    // Ensures stale rows left over from a BE restart are still caught.
+    // 10 ticks × 30s = forced reconciliation every 5 minutes.
+    private static final int FORCE_DB_CHECK_EVERY_N_TICKS = 10;
 
     private final VideoCompositionRepository videoCompositionRepository;
     private final HeartbeatStore heartbeatStore;
 
+    private final AtomicInteger tickCount = new AtomicInteger(0);
+
     @Scheduled(fixedDelay = 30_000)
     @Transactional
     public void timeoutStaleCompositions() {
-        if (!heartbeatStore.hasAnyActive()) return;
+        boolean forcedTick = (tickCount.incrementAndGet() % FORCE_DB_CHECK_EVERY_N_TICKS == 0);
+        if (!forcedTick && !heartbeatStore.hasAnyActive()) return;
         expireStuckInQueue();
         expireSilentProcessing();
     }
 
-    /** QUEUED > 5 min → AI server never picked the job up */
+    /** QUEUED > 30 min → AI server never picked the job up */
     private void expireStuckInQueue() {
         LocalDateTime cutoff = LocalDateTime.now().minusMinutes(QUEUED_TIMEOUT_MINUTES);
         List<VideoComposition> stale = videoCompositionRepository
