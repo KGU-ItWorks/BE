@@ -11,6 +11,7 @@ public class VideoCompositionStatusResponse {
 
     private Long id;
     private Long videoId;
+    private Long adVideoId;
     private CompositionStatus status;
     private String failReason;
 
@@ -18,6 +19,7 @@ public class VideoCompositionStatusResponse {
         return VideoCompositionStatusResponse.builder()
                 .id(composition.getId())
                 .videoId(composition.getVideoId())
+                .adVideoId(composition.getAdVideoId())
                 .status(composition.getStatus())
                 .failReason(composition.getRejectionReason())
                 .build();

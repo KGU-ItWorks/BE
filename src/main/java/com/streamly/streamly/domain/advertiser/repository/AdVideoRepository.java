@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Optional;
+
 public interface AdVideoRepository extends JpaRepository<AdVideo, Long> {
 
     // 광고주 본인 영상 목록
@@ -23,4 +25,8 @@ public interface AdVideoRepository extends JpaRepository<AdVideo, Long> {
     Page<AdVideo> findByStatus(@Param("status") AdVideoStatus status, Pageable pageable);
 
     long countByStatus(AdVideoStatus status);
+
+    /** Single-query projection — avoids lazy-loading the full User just to get the ID. */
+    @Query("SELECT a.advertiser.id FROM AdVideo a WHERE a.id = :adVideoId")
+    Optional<Long> findAdvertiserIdById(@Param("adVideoId") Long adVideoId);
 }
