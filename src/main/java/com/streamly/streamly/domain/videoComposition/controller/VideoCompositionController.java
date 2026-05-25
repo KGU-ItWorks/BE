@@ -61,7 +61,7 @@ public class VideoCompositionController {
             summary = "광고주 미승인 합성 영상 목록",
             description = "내 광고 영상이 사용된 합성 결과 중 PENDING 상태인 목록을 반환합니다. hlsPath로 미리보기 재생 가능."
     )
-    @PreAuthorize("hasAnyRole('ADVERTISER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ADVERTISER')")
     @GetMapping("/pending")
     public ResponseEntity<Page<VideoCompositionDto>> getPendingCompositions(
             @Parameter(hidden = true) Authentication authentication,
@@ -74,7 +74,7 @@ public class VideoCompositionController {
             summary = "합성 영상 승인",
             description = "광고주가 합성 결과를 승인합니다. 승인 즉시 published_at이 기록되고 일반 사용자에게 노출됩니다."
     )
-    @PreAuthorize("hasAnyRole('ADVERTISER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ADVERTISER')")
     @PostMapping("/{compositionId}/approve")
     public ResponseEntity<Void> approve(
             @Parameter(description = "합성 요청 ID", required = true)
@@ -88,7 +88,7 @@ public class VideoCompositionController {
             summary = "합성 영상 거절",
             description = "광고주가 합성 결과를 거절합니다. 거절된 영상은 일반 사용자에게 노출되지 않습니다."
     )
-    @PreAuthorize("hasAnyRole('ADVERTISER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ADVERTISER')")
     @PostMapping("/{compositionId}/reject")
     public ResponseEntity<Void> reject(
             @Parameter(description = "합성 요청 ID", required = true)

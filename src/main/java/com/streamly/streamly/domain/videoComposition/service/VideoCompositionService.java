@@ -110,18 +110,22 @@ public class VideoCompositionService {
         heartbeatStore.remove(compositionId);
 
         if (response.isSuccess()) {
-            // Look up which advertiser owns the ad video that was used
-            Long advertiserId = resolveAdvertiserId(response.getAdVideoId());
-            String replacedSegmentsJson = toJson(response.getReplacedSegIndices());
-            composition.markCompleted(
-                    response.getTaskId(),
-                    response.getAdVideoId(),
-                    advertiserId,
-                    response.getComposedPath(),
-                    replacedSegmentsJson
-            );
-            log.info("합성 완료 - compositionId: {}, taskId: {}, adVideoId: {}, advertiserId: {}",
-                    compositionId, response.getTaskId(), response.getAdVideoId(), advertiserId);
+            try {
+                Long advertiserId = resolveAdvertiserId(response.getAdVideoId());
+                String replacedSegmentsJson = toJson(response.getReplacedSegIndices());
+                composition.markCompleted(
+                        response.getTaskId(),
+                        response.getAdVideoId(),
+                        advertiserId,
+                        response.getComposedPath(),
+                        replacedSegmentsJson
+                );
+                log.info("합성 완료 - compositionId: {}, taskId: {}, adVideoId: {}, advertiserId: {}",
+                        compositionId, response.getTaskId(), response.getAdVideoId(), advertiserId);
+            } catch (IllegalArgumentException e) {
+                composition.markFailed("광고 영상 정보를 찾을 수 없습니다: " + e.getMessage());
+                log.warn("합성 콜백 처리 실패 - compositionId: {}, reason: {}", compositionId, e.getMessage());
+            }
         } else {
             composition.markFailed(response.getFailReason());
             log.warn("합성 실패 - compositionId: {}, reason: {}", compositionId, response.getFailReason());
@@ -176,10 +180,8 @@ public class VideoCompositionService {
     private Long resolveAdvertiserId(Long adVideoId) {
         if (adVideoId == null) return null;
         return adVideoRepository.findAdvertiserIdById(adVideoId)
-                .orElseGet(() -> {
-                    log.warn("adVideoId {}에 해당하는 AdVideo를 찾을 수 없습니다.", adVideoId);
-                    return null;
-                });
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "adVideoId에 해당하는 AdVideo를 찾을 수 없습니다. id=" + adVideoId));
     }
 
     private String toJson(Object value) {
