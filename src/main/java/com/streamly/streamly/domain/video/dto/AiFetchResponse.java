@@ -20,6 +20,9 @@ public class AiFetchResponse {
     @JsonProperty("video_id")
     private Long videoId;
 
+    @JsonProperty("ad_video_id")
+    private Long adVideoId;
+
     @JsonProperty("object_prompt")
     private String objectPrompt;
 

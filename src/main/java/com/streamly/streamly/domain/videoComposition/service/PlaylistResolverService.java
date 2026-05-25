@@ -1,5 +1,6 @@
 package com.streamly.streamly.domain.videoComposition.service;
 
+import com.streamly.streamly.domain.videoComposition.entity.AdvertiserApprovalStatus;
 import com.streamly.streamly.domain.videoComposition.entity.CompositionStatus;
 import com.streamly.streamly.domain.videoComposition.entity.VideoComposition;
 import com.streamly.streamly.domain.videoComposition.repository.VideoCompositionRepository;
@@ -19,10 +20,6 @@ public class PlaylistResolverService {
 
     /**
      * Resolve the HLS master playlist path for a given user watching a video.
-     *
-     * Currently returns the most recent COMPLETED composition regardless of user —
-     * this is the stub that will be replaced with preference-based selection once
-     * user preference tracking is implemented.
      *
      * TODO: look up userEmail's ad preference (brand/category) and pick the
      *       composition whose objectPrompt matches, falling back to most recent.
@@ -47,12 +44,13 @@ public class PlaylistResolverService {
 
     /**
      * Pick which composition to show this user.
-     * Stub: ignores userEmail, returns the most recent COMPLETED composition.
-     * Replace this method body when preference logic is ready.
+     * Only returns compositions the advertiser has explicitly APPROVED —
+     * PENDING and REJECTED ones are invisible to normal viewers.
      */
     private Optional<VideoComposition> pickCompositionForUser(Long videoId, String userEmail) {
         // TODO: query user preference, filter by objectPrompt, pick best match
         return videoCompositionRepository
-                .findFirstByVideoIdAndStatusOrderByRequestedAtDesc(videoId, CompositionStatus.COMPLETED);
+                .findFirstByVideoIdAndStatusAndApprovalStatusOrderByPublishedAtDesc(
+                        videoId, CompositionStatus.COMPLETED, AdvertiserApprovalStatus.APPROVED);
     }
 }

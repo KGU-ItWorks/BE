@@ -24,6 +24,13 @@ public class VideoComposition {
     @Column(name = "video_id", nullable = false)
     private Long videoId;
 
+    @Column(name = "ad_video_id")
+    private Long adVideoId;
+
+    // Denormalized from AdVideo.advertiser — set on markCompleted() for fast queries
+    @Column(name = "advertiser_id")
+    private Long advertiserId;
+
     @Column(name = "task_id")
     private String taskId;
 
@@ -79,8 +86,10 @@ public class VideoComposition {
         this.lastHeartbeatAt = LocalDateTime.now();
     }
 
-    public void markCompleted(String taskId, String composedPath, String replacedSegments) {
+    public void markCompleted(String taskId, Long adVideoId, Long advertiserId, String composedPath, String replacedSegments) {
         this.taskId = taskId;
+        this.adVideoId = adVideoId;
+        this.advertiserId = advertiserId;
         this.composedPath = composedPath;
         this.replacedSegments = replacedSegments;
         this.status = CompositionStatus.COMPLETED;
