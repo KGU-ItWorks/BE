@@ -158,6 +158,13 @@ public class AdVideoService {
         return AdVideoDto.Response.from(adVideo);
     }
 
+    @Transactional(readOnly = true)
+    public AdVideoDto.Response getAdVideoById(Long adVideoId) {
+        AdVideo adVideo = adVideoRepository.findById(adVideoId)
+                .orElseThrow(() -> new IllegalArgumentException("광고 영상을 찾을 수 없습니다."));
+        return AdVideoDto.Response.from(adVideo);
+    }
+
     /**
      * 내 광고 영상 삭제 - 파일 및 누끼 결과 모두 삭제 (본인 소유 검증 포함)
      */
@@ -242,6 +249,26 @@ public class AdVideoService {
                 .status(adVideo.getStatus().name())
                 .imageUrls(imageUrls)
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public String getFirstNukiImageUrl(Long adVideoId) {
+        AdVideo adVideo = adVideoRepository.findById(adVideoId)
+                .orElseThrow(() -> new IllegalArgumentException("광고 영상을 찾을 수 없습니다."));
+
+        if (adVideo.getNukiDirPath() == null) return null;
+
+        try (Stream<Path> files = Files.list(Paths.get(adVideo.getNukiDirPath()))) {
+            return files
+                    .filter(p -> p.toString().toLowerCase().endsWith(".png"))
+                    .sorted()
+                    .map(p -> serverUrl + "/nuki/" + adVideoId + "/" + p.getFileName().toString())
+                    .findFirst()
+                    .orElse(null);
+        } catch (IOException e) {
+            log.warn("누끼 이미지 디렉토리 읽기 실패 - adVideoId: {}, path: {}", adVideoId, adVideo.getNukiDirPath(), e);
+            return null;
+        }
     }
 
     private AdObjectCategory parseCategory(String categoryStr) {
