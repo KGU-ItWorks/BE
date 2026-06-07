@@ -60,6 +60,9 @@ public class AdVideo extends BaseEntity {
     @Column(name = "nuki_dir_path")
     private String nukiDirPath;
 
+    @Column(name = "ad_image_path")
+    private String adImagePath;
+
     // 비즈니스 메서드
     public void markProcessing() {
         this.status = AdVideoStatus.PROCESSING;

@@ -45,14 +45,13 @@ public class VideoCompositionController {
             return ResponseEntity.ok(AdInfoDto.noAd());
         }
         AdVideoDto.Response adVideoById = adVideoService.getAdVideoById(videoComposition.getAdVideoId());
-        String nukiImageUrl = adVideoService.getFirstNukiImageUrl(videoComposition.getAdVideoId());
 
         return ResponseEntity.ok(AdInfoDto.from(
                 true,
                 videoComposition.getAdVideoId(),
                 adVideoById.getAdvertiserNickname(),
                 adVideoById.getDescription(),
-                nukiImageUrl
+                adVideoById.getAdImagePath()
         ));
     }
 

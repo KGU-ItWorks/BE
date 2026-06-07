@@ -42,6 +42,9 @@ public class AdVideoService {
     @Value("${ad.video.upload.directory:C:/ItWorks/uploads/advideos}")
     private String adUploadDirectory;
 
+    @Value("${video.upload.directory:uploads}")
+    private String uploadDirectory;
+
     @Value("${ad.callback.url:http://localhost:8080/api/v1/advertiser/callback/nuki}")
     private String callbackUrl;
 
@@ -55,7 +58,7 @@ public class AdVideoService {
      * 광고 영상 업로드 - C:/ItWorks/uploads/advideos/{uuid}/{원본파일명} 저장
      */
     @Transactional
-    public AdVideoDto.Response uploadAdVideo(String email, AdVideoDto.UploadRequest request, MultipartFile videoFile) {
+    public AdVideoDto.Response uploadAdVideo(String email, AdVideoDto.UploadRequest request, MultipartFile videoFile, MultipartFile imageFile) throws IOException {
         User advertiser = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
 
@@ -63,6 +66,12 @@ public class AdVideoService {
 
         AdObjectCategory category = parseCategory(request.getObjectCategory());
         String savedFilePath = storeAdVideo(videoFile);
+
+        if (imageFile == null || imageFile.isEmpty()) {
+            throw new IllegalArgumentException("광고 이미지 파일은 필수입니다.");
+        }
+        String adImageUrl = saveAdImageLocally(imageFile);
+        log.info("Ad image saved locally: {}", adImageUrl);
 
         AdVideo adVideo = AdVideo.builder()
                 .advertiser(advertiser)
@@ -72,6 +81,7 @@ public class AdVideoService {
                 .originalFilename(videoFile.getOriginalFilename())
                 .originalFileSize(videoFile.getSize())
                 .filePath(savedFilePath)
+                .adImagePath(adImageUrl)
                 .build();
 
         AdVideo saved = adVideoRepository.save(adVideo);
@@ -251,26 +261,6 @@ public class AdVideoService {
                 .build();
     }
 
-    @Transactional(readOnly = true)
-    public String getFirstNukiImageUrl(Long adVideoId) {
-        AdVideo adVideo = adVideoRepository.findById(adVideoId)
-                .orElseThrow(() -> new IllegalArgumentException("광고 영상을 찾을 수 없습니다."));
-
-        if (adVideo.getNukiDirPath() == null) return null;
-
-        try (Stream<Path> files = Files.list(Paths.get(adVideo.getNukiDirPath()))) {
-            return files
-                    .filter(p -> p.toString().toLowerCase().endsWith(".png"))
-                    .sorted()
-                    .map(p -> serverUrl + "/nuki/" + adVideoId + "/" + p.getFileName().toString())
-                    .findFirst()
-                    .orElse(null);
-        } catch (IOException e) {
-            log.warn("누끼 이미지 디렉토리 읽기 실패 - adVideoId: {}, path: {}", adVideoId, adVideo.getNukiDirPath(), e);
-            return null;
-        }
-    }
-
     private AdObjectCategory parseCategory(String categoryStr) {
         if (categoryStr == null || categoryStr.isBlank()) return null;
         try {
@@ -334,5 +324,29 @@ public class AdVideoService {
                 });
             }
         }
+    }
+
+    private String getFileExtension(String filename) {
+        if (filename == null || !filename.contains(".")) {
+            return "";
+        }
+        return filename.substring(filename.lastIndexOf("."));
+    }
+
+    private String saveAdImageLocally(MultipartFile imageFile) throws IOException {
+        String originalFileName = imageFile.getOriginalFilename();
+        String uniqueFileName = UUID.randomUUID().toString() + getFileExtension(originalFileName);
+
+        Path adImageDir = Paths.get(uploadDirectory, "adImages");
+        if (!Files.exists(adImageDir)) {
+            Files.createDirectories(adImageDir);
+        }
+
+        Path targetPath = adImageDir.resolve(uniqueFileName);
+        Files.copy(imageFile.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+
+        log.info("Ad image saved locally: {}", targetPath);
+
+        return "/adImages/" + uniqueFileName;
     }
 }
