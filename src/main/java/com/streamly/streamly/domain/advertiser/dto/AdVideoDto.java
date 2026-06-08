@@ -34,6 +34,7 @@ public class AdVideoDto {
         private String status;
         private String failReason;
         private String nukiDirPath;
+        private String adImagePath;
         private String objectCategory;
         private Long advertiserId;
         private String advertiserNickname;
@@ -50,6 +51,7 @@ public class AdVideoDto {
                     .status(adVideo.getStatus().name())
                     .failReason(adVideo.getFailReason())
                     .nukiDirPath(adVideo.getNukiDirPath())
+                    .adImagePath(adVideo.getAdImagePath())
                     .objectCategory(adVideo.getObjectCategory() != null ? adVideo.getObjectCategory().name() : null)
                     .advertiserId(adVideo.getAdvertiser().getId())
                     .advertiserNickname(adVideo.getAdvertiser().getNickname())

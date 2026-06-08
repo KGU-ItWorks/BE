@@ -1,9 +1,14 @@
 package com.streamly.streamly.domain.videoComposition.controller;
 
+import com.streamly.streamly.domain.advertiser.dto.AdVideoDto;
+import com.streamly.streamly.domain.advertiser.service.AdVideoService;
+import com.streamly.streamly.domain.user.repository.UserRepository;
 import com.streamly.streamly.domain.video.dto.AiFetchResponse;
 import com.streamly.streamly.domain.video.service.AiVideoService;
+import com.streamly.streamly.domain.videoComposition.dto.AdInfoDto;
 import com.streamly.streamly.domain.videoComposition.dto.VideoCompositionDto;
 import com.streamly.streamly.domain.videoComposition.dto.VideoCompositionStatusResponse;
+import com.streamly.streamly.domain.videoComposition.entity.VideoComposition;
 import com.streamly.streamly.domain.videoComposition.service.VideoCompositionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -26,6 +31,29 @@ public class VideoCompositionController {
 
     private final AiVideoService aiVideoService;
     private final VideoCompositionService videoCompositionService;
+    private final AdVideoService adVideoService;
+
+
+    @GetMapping("/{videoId}/ad-info")
+    public ResponseEntity<AdInfoDto> getAdInfo(
+            @PathVariable Long videoId
+    ){
+        VideoComposition videoComposition = videoCompositionService.getCurrentVideoComposition(videoId)
+                .orElse(null);
+
+        if (videoComposition == null) {
+            return ResponseEntity.ok(AdInfoDto.noAd());
+        }
+        AdVideoDto.Response adVideoById = adVideoService.getAdVideoById(videoComposition.getAdVideoId());
+
+        return ResponseEntity.ok(AdInfoDto.from(
+                true,
+                videoComposition.getAdVideoId(),
+                adVideoById.getAdvertiserNickname(),
+                adVideoById.getDescription(),
+                adVideoById.getAdImagePath()
+        ));
+    }
 
     // -------------------------------------------------------------------------
     // Uploader — request AI composition

@@ -30,7 +30,6 @@ import org.springframework.web.multipart.MultipartFile;
 public class VideoController {
 
     private final VideoService videoService;
-    private final AiVideoService aiVideoService;
     private final PlaylistResolverService playlistResolverService;
 
     @Operation(

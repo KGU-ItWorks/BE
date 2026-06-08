@@ -18,6 +18,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+
 @Tag(name = "광고주 영상 API", description = "광고주 본인 영상 관리 API")
 @Slf4j
 @RestController
@@ -33,11 +35,12 @@ public class AdVideoController {
     public ResponseEntity<AdVideoDto.Response> uploadAdVideo(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestPart("request") AdVideoDto.UploadRequest request,
-            @RequestPart("videoFile") MultipartFile videoFile) {
+            @RequestPart("videoFile") MultipartFile videoFile,
+            @RequestPart("adImageFile") MultipartFile adImageFile) throws IOException {
 
         log.info("광고 영상 업로드 요청 - user: {}", userDetails.getUsername());
         AdVideoDto.Response response = adVideoService.uploadAdVideo(
-                userDetails.getUsername(), request, videoFile);
+                userDetails.getUsername(), request, videoFile, adImageFile);
         return ResponseEntity.ok(response);
     }
 

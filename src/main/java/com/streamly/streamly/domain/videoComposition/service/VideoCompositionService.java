@@ -20,6 +20,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -31,6 +33,11 @@ public class VideoCompositionService {
     private final HeartbeatStore heartbeatStore;
     private final CompositionStatusPromoter statusPromoter;
     private final ObjectMapper objectMapper;
+
+    public Optional<VideoComposition> getCurrentVideoComposition(Long videoId) {
+        return videoCompositionRepository
+                .findFirstByVideoIdAndStatusAndApprovalStatusOrderByPublishedAtDesc(videoId, CompositionStatus.COMPLETED, AdvertiserApprovalStatus.APPROVED);
+    }
 
     // -------------------------------------------------------------------------
     // Advertiser — list pending compositions

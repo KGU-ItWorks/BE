@@ -25,6 +25,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${ad.nuki.directory:C:/ItWorks/nuki_results}")
     private String nukiDir;
 
+
     /**
      * CORS 설정
      */
@@ -53,6 +54,13 @@ public class WebConfig implements WebMvcConfigurer {
                 .maxAge(3600);
 
         registry.addMapping("/nuki/**")
+                .allowedOrigins("http://localhost:3000")
+                .allowedMethods("GET", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(3600);
+
+        registry.addMapping("/adImages/**")
                 .allowedOrigins("http://localhost:3000")
                 .allowedMethods("GET", "OPTIONS")
                 .allowedHeaders("*")
@@ -97,6 +105,17 @@ public class WebConfig implements WebMvcConfigurer {
 
         registry.addResourceHandler("/nuki/**")
                 .addResourceLocations(nukiPath)
+                .setCachePeriod(3600);
+
+        // 광고 이미지 경로 설정 (/adImages/{filename})
+        String adImagePath = Paths.get(uploadDir, "adImages")
+                .toAbsolutePath()
+                .normalize()
+                .toUri()
+                .toString();
+
+        registry.addResourceHandler("/adImages/**")
+                .addResourceLocations(adImagePath)
                 .setCachePeriod(3600);
 
         // 인코딩된 HLS 파일 경로 설정
