@@ -61,27 +61,6 @@ public class VideoCompositionController {
     // Uploader — request AI composition
     // -------------------------------------------------------------------------
 
-//    @Operation(
-//            summary = "AI 합성 요청",
-//            description = "AI 서버에 특정 영상 구간의 객체 탐지 및 합성을 요청합니다."
-//    )
-//    @PreAuthorize("hasAnyRole('UPLOADER', 'ADMIN')")
-//    @PostMapping("/{videoId}/ai-fetch")
-//    public ResponseEntity<Map<String, Long>> queueAiComposition(
-//            @Parameter(hidden = true) Authentication authentication,
-//            @Parameter(description = "영상 ID", required = true)
-//            @PathVariable Long videoId,
-//            @Parameter(description = "시작 시간 (HH:mm:ss, 기본값: 00:00:00)")
-//            @RequestParam(defaultValue = "00:00:00") String startTime,
-//            @Parameter(description = "구간 길이(초), 미입력 시 끝까지")
-//            @RequestParam(required = false) Integer duration,
-//            @Parameter(description = "객체 탐지 프롬프트", required = true)
-//            @RequestParam String objectPrompt) {
-//
-//        String requesterEmail = authentication.getName();
-//        Long compositionId = aiVideoService.requestAiComposition(requesterEmail, videoId, startTime, duration, objectPrompt);
-//        return ResponseEntity.accepted().body(Map.of("compositionId", compositionId));
-//    }
     @Operation(
             summary = "AI 합성 요청",
             description = "AI 서버에 특정 영상 구간의 객체 탐지 및 합성을 요청합니다."
@@ -96,7 +75,7 @@ public class VideoCompositionController {
 
         String requesterEmail = authentication.getName();
         Long compositionId = aiVideoService.requestAiComposition(requesterEmail, videoId, aiCompositionRequest.startTime()
-                , aiCompositionRequest.duration(), aiCompositionRequest.points());
+                , aiCompositionRequest.duration(), aiCompositionRequest.boundingBox());
         return ResponseEntity.accepted().body(Map.of("compositionId", compositionId));
     }
 

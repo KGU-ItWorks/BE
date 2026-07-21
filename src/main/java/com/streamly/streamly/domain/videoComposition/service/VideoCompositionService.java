@@ -89,18 +89,19 @@ public class VideoCompositionService {
 
     @Transactional
     public Long initialSave(VideoComposeMessage message) {
-        if (message.getVideoId() == null || message.getStartTime() == null || message.getDuration() == null) {
+        if (message.getVideoId() == null || message.getStartTime() == null
+                || message.getDuration() == null || message.getBoundingBox() == null) {
             throw new IllegalArgumentException("합성 요청 필수값이 누락되었습니다.");
         }
-        String clickPointsJson;
+        String boundingBoxJson;
         try{
-            clickPointsJson = objectMapper.writeValueAsString(message.getPoints());
+            boundingBoxJson = objectMapper.writeValueAsString(message.getBoundingBox());
         } catch (JsonProcessingException e) {
-            throw new IllegalArgumentException("클릭 포인트 직렬화에 실패했습니다.", e);
+            throw new IllegalArgumentException("바운딩 박스 직렬화에 실패했습니다.", e);
         }
         VideoComposition composition = VideoComposition.builder()
                 .videoId(message.getVideoId())
-                .clickPoints(clickPointsJson)
+                .boundingBox(boundingBoxJson)
                 .startTime(message.getStartTime())
                 .duration(message.getDuration())
                 .build();

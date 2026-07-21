@@ -35,8 +35,8 @@ public class VideoComposition {
     private String taskId;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "click_points", columnDefinition = "json", nullable = false)
-    private String clickPoints;
+    @Column(name = "bounding_box", columnDefinition = "json", nullable = false)
+    private String boundingBox;
 
     @Column(name = "start_time", nullable = false)
     private String startTime;
