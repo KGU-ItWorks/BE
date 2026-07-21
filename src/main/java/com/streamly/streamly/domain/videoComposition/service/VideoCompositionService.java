@@ -1,5 +1,6 @@
 package com.streamly.streamly.domain.videoComposition.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.streamly.streamly.domain.advertiser.repository.AdVideoRepository;
 import com.streamly.streamly.domain.user.entity.User;
@@ -88,13 +89,18 @@ public class VideoCompositionService {
 
     @Transactional
     public Long initialSave(VideoComposeMessage message) {
-        if (message.getVideoId() == null || message.getObjectPrompt() == null
-                || message.getStartTime() == null || message.getDuration() == null) {
+        if (message.getVideoId() == null || message.getStartTime() == null || message.getDuration() == null) {
             throw new IllegalArgumentException("합성 요청 필수값이 누락되었습니다.");
+        }
+        String clickPointsJson;
+        try{
+            clickPointsJson = objectMapper.writeValueAsString(message.getPoints());
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("클릭 포인트 직렬화에 실패했습니다.", e);
         }
         VideoComposition composition = VideoComposition.builder()
                 .videoId(message.getVideoId())
-                .objectPrompt(message.getObjectPrompt())
+                .clickPoints(clickPointsJson)
                 .startTime(message.getStartTime())
                 .duration(message.getDuration())
                 .build();

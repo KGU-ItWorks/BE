@@ -34,8 +34,9 @@ public class VideoComposition {
     @Column(name = "task_id")
     private String taskId;
 
-    @Column(name = "object_prompt", nullable = false)
-    private String objectPrompt;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "click_points", columnDefinition = "json", nullable = false)
+    private String clickPoints;
 
     @Column(name = "start_time", nullable = false)
     private String startTime;
