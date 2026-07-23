@@ -1,5 +1,6 @@
 package com.streamly.streamly.domain.video.dto;
 
+import com.streamly.streamly.domain.videoComposition.entity.BoundingBox;
 import lombok.*;
 
 import java.io.Serializable;
@@ -12,23 +13,23 @@ import java.io.Serializable;
 @AllArgsConstructor
 @Builder
 public class VideoComposeMessage implements Serializable {
-    private Long    videoId;
-    private String  videoUrl;
-    private String  startTime;
-    private Integer duration;
-    private String  objectPrompt;
-    private String  callbackUrl; // AI 처리 완료 후 BE에 콜백할 URL
+    private Long        videoId;
+    private String      videoUrl;
+    private String      startTime;
+    private Integer     duration;
+    private BoundingBox boundingBox;
+    private String      callbackUrl; // AI 처리 완료 후 BE에 콜백할 URL
 
     /**
      * compositionId 확보 전 초안 — callbackUrl은 빈 문자열로 저장 후 교체
      */
-    public static VideoComposeMessage draft(Long videoId, String videoUrl, String startTime, Integer duration, String objectPrompt) {
+    public static VideoComposeMessage draft(Long videoId, String videoUrl, String startTime, Integer duration, BoundingBox boundingBox) {
         return VideoComposeMessage.builder()
                 .videoId(videoId)
                 .videoUrl(videoUrl)
                 .startTime(startTime != null ? startTime : "00:00:00")
                 .duration(duration)
-                .objectPrompt(objectPrompt)
+                .boundingBox(boundingBox)
                 .callbackUrl("")
                 .build();
     }
@@ -42,7 +43,7 @@ public class VideoComposeMessage implements Serializable {
                 .videoUrl(draft.videoUrl)
                 .startTime(draft.startTime)
                 .duration(draft.duration)
-                .objectPrompt(draft.objectPrompt)
+                .boundingBox(draft.boundingBox)
                 .callbackUrl(callbackUrl)
                 .build();
     }

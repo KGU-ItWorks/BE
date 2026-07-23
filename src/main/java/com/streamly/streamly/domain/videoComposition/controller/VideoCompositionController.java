@@ -8,10 +8,12 @@ import com.streamly.streamly.domain.video.service.AiVideoService;
 import com.streamly.streamly.domain.videoComposition.dto.AdInfoDto;
 import com.streamly.streamly.domain.videoComposition.dto.VideoCompositionDto;
 import com.streamly.streamly.domain.videoComposition.dto.VideoCompositionStatusResponse;
+import com.streamly.streamly.domain.videoComposition.entity.AiCompositionRequest;
 import com.streamly.streamly.domain.videoComposition.entity.VideoComposition;
 import com.streamly.streamly.domain.videoComposition.service.VideoCompositionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -69,15 +71,11 @@ public class VideoCompositionController {
             @Parameter(hidden = true) Authentication authentication,
             @Parameter(description = "영상 ID", required = true)
             @PathVariable Long videoId,
-            @Parameter(description = "시작 시간 (HH:mm:ss, 기본값: 00:00:00)")
-            @RequestParam(defaultValue = "00:00:00") String startTime,
-            @Parameter(description = "구간 길이(초), 미입력 시 끝까지")
-            @RequestParam(required = false) Integer duration,
-            @Parameter(description = "객체 탐지 프롬프트", required = true)
-            @RequestParam String objectPrompt) {
+            @RequestBody @Valid AiCompositionRequest aiCompositionRequest) {
 
         String requesterEmail = authentication.getName();
-        Long compositionId = aiVideoService.requestAiComposition(requesterEmail, videoId, startTime, duration, objectPrompt);
+        Long compositionId = aiVideoService.requestAiComposition(requesterEmail, videoId, aiCompositionRequest.startTime()
+                , aiCompositionRequest.duration(), aiCompositionRequest.boundingBox());
         return ResponseEntity.accepted().body(Map.of("compositionId", compositionId));
     }
 

@@ -6,6 +6,7 @@ import com.streamly.streamly.domain.user.repository.UserRepository;
 import com.streamly.streamly.domain.video.dto.VideoComposeMessage;
 import com.streamly.streamly.domain.video.entity.Video;
 import com.streamly.streamly.domain.video.repository.VideoRepository;
+import com.streamly.streamly.domain.videoComposition.entity.BoundingBox;
 import com.streamly.streamly.domain.videoComposition.service.VideoCompositionService;
 import com.streamly.streamly.global.config.RabbitMQConfig;
 import com.streamly.streamly.global.exception.BusinessException;
@@ -31,7 +32,7 @@ public class AiVideoService {
     @Value("${server.base-url:http://localhost:8080}")
     private String beServerUrl;
 
-    public Long requestAiComposition(String requesterEmail, Long videoId, String startTime, Integer duration, String objectPrompt) {
+    public Long requestAiComposition(String requesterEmail, Long videoId, String startTime, Integer duration, BoundingBox boundingBox) {
         User requester = userRepository.findByEmail(requesterEmail)
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
 
@@ -52,7 +53,7 @@ public class AiVideoService {
         }
         String videoUrl = rawUrl.startsWith("/") ? beServerUrl + rawUrl : rawUrl;
 
-        VideoComposeMessage draft = VideoComposeMessage.draft(videoId, videoUrl, startTime, duration, objectPrompt);
+        VideoComposeMessage draft = VideoComposeMessage.draft(videoId, videoUrl, startTime, duration, boundingBox);
         Long compositionId = videoCompositionService.initialSave(draft);
 
         String callbackUrl = beServerUrl + "/api/v1/video-compositions/" + compositionId + "/callback";
